@@ -4,9 +4,9 @@
 
 A Windows app for managing **Nuclear Option** mods — BepInEx plugins (including installing BepInEx
 itself), saved missions, and aircraft liveries — plus a Mod Creator that scaffolds and compiles real
-plugins for you. A companion tool to the [R.U.S.E. Mod Manager](https://github.com/), sharing its
-dark navy/gold "Field Operations" visual theme (`theme.py` / `ui_util.py`, copied verbatim) but
-otherwise an independent project for a different game.
+plugins for you. A companion tool to the [R.U.S.E. Mod Manager](https://github.com/LittleGroove/RUSE-Mod-Manager),
+sharing its dark navy/gold "Field Operations" visual theme (`theme.py` / `ui_util.py`, copied
+verbatim) but otherwise an independent project for a different game.
 
 ## Download
 
@@ -80,6 +80,13 @@ is also installed (`winget install JRSoftware.InnoSetup`), it additionally build
   directly readable without any .NET metadata library) — confirmed against real community plugins.
 - The `.cfg` editor only ever rewrites the one `Key = Value` line you change; every comment line
   (description, type, default, acceptable values) is preserved byte-for-byte.
+
+## Special thanks
+
+The dark navy/gold "Field Operations" theme and the general feel of this app's UI come from
+**[LittleGroove](https://github.com/LittleGroove)**'s **[R.U.S.E. Mod Manager](https://github.com/LittleGroove/RUSE-Mod-Manager)**
+— `theme.py` and `ui_util.py` are copied from it essentially verbatim. If you mod R.U.S.E., go
+check that project out.
 
 ## License
 
