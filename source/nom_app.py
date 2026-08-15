@@ -17,10 +17,13 @@ Companion app to the R.U.S.E. Mod Manager, sharing its visual theme (theme.py / 
 window-chrome conventions but otherwise an independent, standalone project.
 """
 
+import colorsys
 import ctypes
 import json
+import math
 import os
 import sys
+import time
 import tkinter as tk
 from pathlib import Path
 from tkinter import ttk
@@ -38,6 +41,28 @@ import ui_util
 import nom_steam
 
 _SETTINGS_FILE = _LAUNCH_DIR / "settings.json"
+
+_PULSE_PERIOD_SEC = 5.0     # one full dim->bright->dim cycle
+_PULSE_SAT_DELTA = 0.15     # how far saturation swings each way — kept small on purpose
+
+
+def _hex_to_rgb01(hex_color):
+    h = hex_color.lstrip("#")
+    return tuple(int(h[i:i + 2], 16) / 255 for i in (0, 2, 4))
+
+
+def _rgb01_to_hex(rgb):
+    return "#" + "".join(f"{max(0, min(255, round(c * 255))):02x}" for c in rgb)
+
+
+def _pulse_color(base_hex: str, t: float) -> str:
+    """`base_hex` with its saturation gently oscillating over a _PULSE_PERIOD_SEC cycle — hue and
+    value stay fixed, so it reads as the same colour breathing, not a colour change."""
+    r, g, b = _hex_to_rgb01(base_hex)
+    h, s, v = colorsys.rgb_to_hsv(r, g, b)
+    phase = (t % _PULSE_PERIOD_SEC) / _PULSE_PERIOD_SEC
+    s = max(0.0, min(1.0, s + math.sin(phase * 2 * math.pi) * _PULSE_SAT_DELTA))
+    return _rgb01_to_hex(colorsys.hsv_to_rgb(h, s, v))
 
 # 32x32 gold reticle-on-navy placeholder icon, drawn at runtime (no external asset / dependency).
 _ICON_SIZE = 32
@@ -379,6 +404,7 @@ class NomApp(tk.Tk):
         self._launch_btn = ttk.Button(switcher, text=t("▶ Launch Nuclear Option"),
                                        style="Launch.TButton", command=self.launch_game)
         self._launch_btn.pack(side=tk.RIGHT, ipady=2)
+        self._start_launch_button_pulse()
 
         def _refresh_gating():
             ready = nom_steam.is_mod_ready(self._settings.get("game_root", ""))
@@ -400,7 +426,28 @@ class NomApp(tk.Tk):
         except Exception as e:
             ui_util.error(self, t("Couldn't Launch"), str(e))
 
+    def _start_launch_button_pulse(self):
+        """A slow saturation breathe on the Launch button — pure flavour, so any failure here
+        (e.g. the window closing mid-tick) must never surface as an error."""
+        style = ttk.Style(self)
+        self._pulse_after_id = None
+
+        def _tick():
+            try:
+                color = _pulse_color(theme.HUD, time.monotonic())
+                style.configure("Launch.TButton", foreground=color, bordercolor=color)
+                self._pulse_after_id = self.after(100, _tick)
+            except Exception:
+                pass
+
+        _tick()
+
     def _on_close(self):
+        if getattr(self, "_pulse_after_id", None):
+            try:
+                self.after_cancel(self._pulse_after_id)
+            except Exception:
+                pass
         self.destroy()
 
 
