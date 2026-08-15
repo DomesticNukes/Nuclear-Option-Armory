@@ -117,13 +117,15 @@ class _Tab:
             if path.exists():
                 with open(path, encoding="utf-8") as f:
                     data = json.load(f) or {}
-                self._saved_enabled = {
-                    _norm(e["path"]): bool(e.get("enabled")) for e in data.get("plugins", []) if e.get("path")
-                }
+                entries = [e for e in data.get("plugins", []) if e.get("path")]
+                self._saved_enabled = {_norm(e["path"]): bool(e.get("enabled")) for e in entries}
+                self.descriptions = {_norm(e["path"]): e["description"] for e in entries if e.get("description")}
             else:
                 self._saved_enabled = {}
+                self.descriptions = {}
         except Exception:
             self._saved_enabled = {}
+            self.descriptions = {}
         finally:
             self._state_loading = False
 
@@ -132,10 +134,19 @@ class _Tab:
             return
         try:
             with _STATE_LOCK:
-                data = {"plugins": [{"path": str(p), "enabled": bool(v.get())} for v, p in self.plugin_vars]}
+                data = {"plugins": [
+                    {"path": str(p), "enabled": bool(v.get()), "description": self.descriptions.get(_norm(p), "")}
+                    for v, p in self.plugin_vars
+                ]}
                 _atomic_write_json(self._state_file(), data)
         except Exception:
             pass
+
+    def set_description(self, path, description: str):
+        """Called by mod_creator_tab after building a plugin, so its description shows up here."""
+        self.descriptions[_norm(path)] = description.strip()
+        self._save_state()
+        self._update_detail()
 
     # ── Library scan ─────────────────────────────────────────────────────
 
@@ -270,6 +281,7 @@ class _Tab:
             t("Version: {v}", v=meta.version or t("(unknown)")),
             t("Deployed: {yn}", yn=t("Yes") if self._is_deployed(path) else t("No")),
             t("Settings file: {yn}", yn=t("Yes") if cfg_path else t("No")),
+            t("Description: {d}", d=self.descriptions.get(_norm(path)) or t("(none)")),
         ]
         if meta.source == "filename-fallback":
             lines.append(t("(couldn't read plugin info from this DLL — showing filename)"))

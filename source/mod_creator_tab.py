@@ -70,6 +70,15 @@ class _Tab:
         template_combo.grid(row=3, column=1, sticky="w", padx=(0, 8), pady=6)
         template_combo.bind("<<ComboboxSelected>>", lambda e: self._show_template_fields())
 
+        ttk.Label(basics, text=t("Description")).grid(row=4, column=0, sticky="nw", padx=8, pady=6)
+        self.desc_text = tk.Text(basics, height=3, font=theme.F, wrap="word",
+                                  background=theme.WIDGET, foreground=theme.TEXT,
+                                  insertbackground=theme.HUD, relief="flat",
+                                  highlightthickness=1, highlightbackground=theme.BORDER)
+        self.desc_text.grid(row=4, column=1, sticky="ew", padx=(0, 8), pady=6)
+        ui_util.tooltip(self.desc_text, t(
+            "Optional — what this mod does, shown in the Plugins tab's Details pane once built."))
+
         self.template_frame = ttk.Frame(outer)
         self.template_frame.pack(fill="x", padx=8, pady=(0, 6))
         self._build_template_fields()
@@ -287,6 +296,9 @@ class _Tab:
                 dest.write_bytes(result.dll_path.read_bytes())
                 self.status_var.set(t("Built and copied to your plugin library: {name}", name=dest.name))
                 self.app.notify_settings_changed()
+                description = self.desc_text.get("1.0", tk.END).strip()
+                if description:
+                    self.app._plugins_tab.set_description(dest, description)
             except Exception as e:
                 self.status_var.set(t("Built OK, but couldn't copy to the plugin library: {err}", err=str(e)))
         else:
