@@ -73,7 +73,7 @@ def build(parent, app):
     # ── About ────────────────────────────────────────────────────────────────
     about = ttk.LabelFrame(body, text=t("About"))
     about.pack(fill="x")
-    ttk.Label(about, text=t("Nuclear Option Mod Manager"), font=theme.FHEAD).pack(anchor="w", padx=8, pady=(6, 0))
+    ttk.Label(about, text=t("Nuclear Option Armory"), font=theme.FHEAD).pack(anchor="w", padx=8, pady=(6, 0))
     ttk.Label(about, text=t("Version {v}", v=_APP_VERSION)).pack(anchor="w", padx=8)
     ttk.Label(about, text=t("A companion tool to the R.U.S.E. Mod Manager, sharing its visual theme."),
               wraplength=560).pack(anchor="w", padx=8, pady=(0, 6))

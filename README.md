@@ -1,6 +1,6 @@
-# Nuclear Option Mod Manager
+# Nuclear Option Armory
 
-[![Build](https://github.com/DomesticNukes/Nuclear-Option-Mod-Manager/actions/workflows/build.yml/badge.svg)](https://github.com/DomesticNukes/Nuclear-Option-Mod-Manager/actions/workflows/build.yml)
+[![Build](https://github.com/DomesticNukes/Nuclear-Option-Armory/actions/workflows/build.yml/badge.svg)](https://github.com/DomesticNukes/Nuclear-Option-Armory/actions/workflows/build.yml)
 
 A Windows app for managing **Nuclear Option** mods — BepInEx plugins (including installing BepInEx
 itself), saved missions, and aircraft liveries — plus a Mod Creator that scaffolds and compiles real
@@ -10,7 +10,7 @@ verbatim) but otherwise an independent project for a different game.
 
 ## Download
 
-Grab the latest build from the [Actions tab](https://github.com/DomesticNukes/Nuclear-Option-Mod-Manager/actions/workflows/build.yml) (click the newest green run, scroll to Artifacts) — two options:
+Grab the latest build from the [Actions tab](https://github.com/DomesticNukes/Nuclear-Option-Armory/actions/workflows/build.yml) (click the newest green run, scroll to Artifacts) — two options:
 
 - **Setup installer** (recommended if you don't have Python or don't want to think about where to
   put a loose exe) — a normal Windows Setup Wizard: Next, Next, Finish. Installs to your user
@@ -71,9 +71,9 @@ pip install pyinstaller
 python build.py
 ```
 
-Always produces `dist\Nuclear Option Mod Manager.exe`. If [Inno Setup](https://jrsoftware.org/isinfo.php)
+Always produces `dist\Nuclear Option Armory.exe`. If [Inno Setup](https://jrsoftware.org/isinfo.php)
 is also installed (`winget install JRSoftware.InnoSetup`), it additionally builds
-`dist_installer\Nuclear Option Mod Manager Setup.exe` from `installer.iss`. CI does both automatically.
+`dist_installer\Nuclear Option Armory Setup.exe` from `installer.iss`. CI does both automatically.
 
 ## Design notes
 

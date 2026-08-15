@@ -1,5 +1,5 @@
 """
-Steam integration utilities for the Nuclear Option Mod Manager.
+Steam integration utilities for the Nuclear Option Armory.
 
 Provides:
   find_steam_path()          — locate the Steam installation root

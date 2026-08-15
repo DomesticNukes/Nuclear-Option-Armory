@@ -20,7 +20,7 @@ from typing import Callable, Optional
 from bepinex_installer import download as _download_file
 
 _RELEASES_API = "https://api.github.com/repos/nikkorap/NOBlueprinter-Releases/releases/latest"
-_USER_AGENT = "NuclearOptionModManager"
+_USER_AGENT = "NuclearOptionArmory"
 
 BLUEPRINTER_GUID = "com.nikkorap.blueprinter"
 

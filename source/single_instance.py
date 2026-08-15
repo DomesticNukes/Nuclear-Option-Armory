@@ -1,5 +1,5 @@
 """
-Single-instance guard (Windows) for the Nuclear Option Mod Manager.
+Single-instance guard (Windows) for the Nuclear Option Armory.
 ================================================================
 Users reported launching the app once but ending up with TWO windows / processes.  A onefile
 PyInstaller build always shows a bootloader-parent + app-child PAIR of same-named processes — that
@@ -19,7 +19,7 @@ Design goals (all failure-safe — a bug here must NEVER stop the app from launc
 """
 import sys
 
-_MUTEX_NAME = "Global\\NuclearOptionModManager.SingleInstance"
+_MUTEX_NAME = "Global\\NuclearOptionArmory.SingleInstance"
 _ERROR_ALREADY_EXISTS = 183
 _WAIT_MS_FOR_HANDOFF = 4000     # how long a fresh instance waits for a relaunch predecessor to exit
 _WAIT_STEP_MS = 200

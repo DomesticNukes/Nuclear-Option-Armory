@@ -24,7 +24,7 @@ from pathlib import Path
 from typing import Callable, Optional
 
 _RELEASES_API = "https://api.github.com/repos/BepInEx/BepInEx/releases"
-_USER_AGENT = "NuclearOptionModManager"
+_USER_AGENT = "NuclearOptionArmory"
 
 # Known-good fallback if the GitHub API call fails (rate limit, offline, API change) — the exact
 # release confirmed working against this game this session.

@@ -1,5 +1,5 @@
 """
-Nuclear Option Mod Manager
+Nuclear Option Armory
 ============================
 Four switchable tab groups:
   SETUP    — the gating checklist (game directory, BepInEx install) — always reachable
@@ -114,7 +114,7 @@ class NomApp(tk.Tk):
         self._apply_titlebar_theme()
         self._settings = self._load_settings()
         i18n.load(self._settings.get("default_language", "us"))
-        self.title(t("Nuclear Option Mod Manager"))
+        self.title(t("Nuclear Option Armory"))
 
         if not self._settings.get("game_root"):
             self._auto_detect_game_root()
@@ -462,7 +462,7 @@ def main():
         pass
 
     try:
-        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("NuclearOptionModManager")
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("NuclearOptionArmory")
     except Exception:
         pass
 
@@ -476,7 +476,7 @@ def main():
         try:
             r = tk.Tk()
             r.withdraw()
-            ui_util.error(r, t("Startup Failed"), t("Nuclear Option Mod Manager couldn't start: {err}", err=str(startup_err)))
+            ui_util.error(r, t("Startup Failed"), t("Nuclear Option Armory couldn't start: {err}", err=str(startup_err)))
             r.destroy()
         except Exception:
             pass

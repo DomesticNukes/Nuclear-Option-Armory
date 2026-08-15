@@ -1,4 +1,4 @@
-# Nuclear Option Mod Manager — Python dependencies
+# Nuclear Option Armory — Python dependencies
 #
 # Quick setup (project-local venv):
 #     python -m venv .venv

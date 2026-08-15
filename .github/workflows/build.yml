@@ -28,10 +28,10 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Nuclear Option Mod Manager (exe)
-          path: dist/Nuclear Option Mod Manager.exe
+          name: Nuclear Option Armory (exe)
+          path: dist/Nuclear Option Armory.exe
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Nuclear Option Mod Manager (installer)
-          path: dist_installer/Nuclear Option Mod Manager Setup.exe
+          name: Nuclear Option Armory (installer)
+          path: dist_installer/Nuclear Option Armory Setup.exe
