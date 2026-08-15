@@ -20,10 +20,18 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Build exe
+      - name: Install Inno Setup
+        run: choco install innosetup -y --no-progress
+
+      - name: Build exe + installer
         run: python build.py
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Nuclear Option Mod Manager
+          name: Nuclear Option Mod Manager (exe)
           path: dist/Nuclear Option Mod Manager.exe
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Nuclear Option Mod Manager (installer)
+          path: dist_installer/Nuclear Option Mod Manager Setup.exe

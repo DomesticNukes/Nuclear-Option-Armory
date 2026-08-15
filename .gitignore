@@ -4,4 +4,5 @@ source/settings.json
 source/plugin_library_state.json
 build/
 dist/
+dist_installer/
 *.spec
