@@ -89,8 +89,9 @@ def _read_appmanifest(library: Path, appid: str) -> Optional[str]:
 def find_nuclear_option_dir() -> Optional[Path]:
     """Find the Nuclear Option install directory across all Steam libraries.
 
-    Returns the game root (the folder containing NuclearOption.exe and BepInEx/),
-    or None if not found.
+    Returns the game root (the folder containing NuclearOption.exe), or None if not found.
+    Deliberately does NOT require BepInEx — a vanilla, never-modded install must still be
+    discoverable so the app can offer to install BepInEx into it (see bepinex_installer.py).
     """
     steam = find_steam_path()
     if steam is None:
@@ -101,18 +102,36 @@ def find_nuclear_option_dir() -> Optional[Path]:
         if not installdir:
             continue
         candidate = lib / "steamapps" / "common" / installdir
-        if (candidate / "NuclearOption.exe").exists() and (candidate / "BepInEx").is_dir():
+        if (candidate / "NuclearOption.exe").exists():
             return candidate
 
     return None
 
 
 def is_valid_game_root(path) -> bool:
-    """True if `path` looks like a real Nuclear Option install (exe + BepInEx present)."""
+    """True if `path` looks like a real Nuclear Option install — the exe is present.
+    Deliberately independent of BepInEx; see is_bepinex_installed() for that."""
+    if not path:
+        return False
+    try:
+        return (Path(path) / "NuclearOption.exe").exists()
+    except Exception:
+        return False
+
+
+def is_bepinex_installed(path) -> bool:
+    """True if BepInEx (the Doorstop-injected mod loader, not part of the base game) is
+    installed into `path` — the folder plus its winhttp.dll injector proxy are both present."""
     if not path:
         return False
     try:
         p = Path(path)
-        return (p / "NuclearOption.exe").exists() and (p / "BepInEx").is_dir()
+        return (p / "BepInEx").is_dir() and (p / "winhttp.dll").is_file()
     except Exception:
         return False
+
+
+def is_mod_ready(path) -> bool:
+    """True if `path` is both a real Nuclear Option install AND has BepInEx installed —
+    the combined check anything that actually needs to deploy/compile plugins should use."""
+    return is_valid_game_root(path) and is_bepinex_installed(path)

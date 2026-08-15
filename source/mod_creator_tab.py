@@ -216,6 +216,11 @@ class _Tab:
             ui_util.warning(self.app, t("No Game Folder"),
                              t("Set a valid Nuclear Option game folder in Settings first."))
             return
+        if not nom_steam.is_bepinex_installed(game_root):
+            ui_util.warning(self.app, t("BepInEx Not Installed"),
+                             t("Compiling needs BepInEx's own DLLs as references — go to Settings "
+                               "and click \"Install BepInEx\" first."))
+            return
 
         dotnet = mce.find_dotnet_exe()
         if not dotnet:

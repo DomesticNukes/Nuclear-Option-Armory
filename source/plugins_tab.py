@@ -335,6 +335,11 @@ class _Tab:
             ui_util.warning(self.app, t("No Game Folder"),
                              t("Set a valid Nuclear Option game folder in Settings first."))
             return
+        if not nom_steam.is_bepinex_installed(game_root):
+            ui_util.warning(self.app, t("BepInEx Not Installed"),
+                             t("Deployed plugins won't do anything until BepInEx is installed — "
+                               "go to Settings and click \"Install BepInEx\" first."))
+            return
         plugins_dir = self.app.bepinex_plugins_dir()
         try:
             plugins_dir.mkdir(parents=True, exist_ok=True)
