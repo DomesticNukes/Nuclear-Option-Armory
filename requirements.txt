@@ -1,0 +1,13 @@
+# Nuclear Option Mod Manager — Python dependencies
+#
+# Quick setup (project-local venv):
+#     python -m venv .venv
+#     .venv\Scripts\python -m pip install -r requirements.txt
+# Then run/test with:  .venv\Scripts\python source\nom_app.py
+# (or select .venv as the interpreter in your IDE)
+
+# Runtime — none. The app is pure stdlib (tkinter, json, pathlib, ctypes, winreg, shutil).
+# The window icon is drawn at runtime with tk.PhotoImage — no image file, no Pillow.
+
+# Build only (build.py packages the exe):
+pyinstaller>=6

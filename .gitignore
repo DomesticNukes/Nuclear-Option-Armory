@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+source/settings.json
+source/plugin_library_state.json
+build/
+dist/
+*.spec
