@@ -1,11 +1,17 @@
 """
 Nuclear Option Mod Manager
 ============================
-Two switchable tab groups:
-  MANAGE  — Plugins (enable/disable BepInEx DLLs, deploy, edit .cfg settings),
-            Missions (organize saved missions), Skins (organize livery folders)
-  CREATE  — Mod Creator (scaffold + compile a real BepInEx plugin from a template),
-            Settings (game root / plugin library folder)
+Four switchable tab groups:
+  SETUP    — the gating checklist (game directory, BepInEx install) — always reachable
+  MANAGE   — Plugins (enable/disable BepInEx DLLs, deploy, edit .cfg settings),
+             Missions (organize saved missions), Skins (organize livery folders)
+             — locked until Setup's two steps are both done
+  CREATE   — Mod Creator (scaffold + compile a real BepInEx plugin from a template)
+             — locked until Setup's two steps are both done
+  SETTINGS — plugin library folder / about
+
+A persistent "Launch Nuclear Option" button sits in the switcher bar, enabled once a valid game
+folder is set.
 
 Companion app to the R.U.S.E. Mod Manager, sharing its visual theme (theme.py / ui_util.py) and
 window-chrome conventions but otherwise an independent, standalone project.
@@ -194,6 +200,12 @@ class NomApp(tk.Tk):
               background=[("active", theme.HUD_BG)],
               foreground=[("active", theme.HUD)])
 
+        s.configure("Launch.TButton", background=theme.HUD_BG, foreground=theme.HUD, font=theme.FHEAD,
+                     bordercolor=theme.HUD, relief="flat", padding=(16, 6))
+        s.map("Launch.TButton",
+              background=[("active", theme.HUD_BG), ("disabled", theme.BTN)],
+              foreground=[("active", theme.HUD), ("disabled", theme.DIM)])
+
         s.configure("TNotebook", background=theme.BG, bordercolor=theme.BORDER, tabmargins=[2, 4, 0, 0])
         s.configure("TNotebook.Tab", background=theme.BTN, foreground=theme.DIM, font=theme.FB,
                      padding=(12, 5), bordercolor=theme.BORDER)
@@ -299,26 +311,29 @@ class NomApp(tk.Tk):
     # ── UI construction ──────────────────────────────────────────────────────
 
     def _build_ui(self):
+        import setup_tab
         import plugins_tab
         import missions_tab
         import skins_tab
         import mod_creator_tab
         import settings_tab
 
-        # Two top-level groups, switched via the bar below rather than one flat row of 5 tabs:
-        #   MANAGE — day-to-day mod management (Plugins/Missions/Skins)
-        #   CREATE — build tools (Mod Creator, Settings)
+        # Four top-level groups, switched via the bar below rather than one flat row of tabs:
+        #   SETUP    — the gating checklist (game directory, BepInEx) — single tab, always reachable
+        #   MANAGE   — day-to-day mod management (Plugins/Missions/Skins) — locked until setup's done
+        #   CREATE   — build tools (Mod Creator) — locked until setup's done
+        #   SETTINGS — day-to-day preferences (plugin library, about) — single tab, next to Create
         groups = [
+            ("setup", t("SETUP"), [(t("Setup"), setup_tab.build)]),
             ("manage", t("MANAGE"), [
                 (t("  Plugins  "), plugins_tab.build),
                 (t("  Missions  "), missions_tab.build),
                 (t("  Skins  "), skins_tab.build),
             ]),
-            ("create", t("CREATE"), [
-                (t("  Mod Creator  "), mod_creator_tab.build),
-                (t("  Settings  "), settings_tab.build),
-            ]),
+            ("create", t("CREATE"), [(t("Mod Creator"), mod_creator_tab.build)]),
+            ("settings", t("SETTINGS"), [(t("Settings"), settings_tab.build)]),
         ]
+        _GATED_GROUPS = ("manage", "create")
 
         switcher = ttk.Frame(self)
         switcher.pack(fill="x", padx=6, pady=(6, 0))
@@ -330,29 +345,60 @@ class NomApp(tk.Tk):
 
         self._group_notebooks = {}
         self._group_buttons = {}
+        self._active_group = None
 
         def _show_group(key):
-            for gkey, nb in self._group_notebooks.items():
-                nb.grid_remove()
+            if self._group_buttons[key].cget("state") == "disabled":
+                return
+            for gkey, page in self._group_notebooks.items():
+                page.grid_remove()
             self._group_notebooks[key].grid(row=0, column=0, sticky="nsew")
             for gkey, btn in self._group_buttons.items():
                 btn.configure(style=("GroupActive.TButton" if gkey == key else "Group.TButton"))
+            self._active_group = key
 
         for key, label, tabs in groups:
-            nb = ttk.Notebook(content)
-            nb.grid(row=0, column=0, sticky="nsew")
-            self._group_notebooks[key] = nb
-            for tab_label, builder in tabs:
-                frame = ttk.Frame(nb)
-                nb.add(frame, text=tab_label)
-                builder(frame, self)
+            if len(tabs) == 1:
+                page = ttk.Frame(content)
+                page.grid(row=0, column=0, sticky="nsew")
+                tabs[0][1](page, self)
+            else:
+                page = ttk.Notebook(content)
+                page.grid(row=0, column=0, sticky="nsew")
+                for tab_label, builder in tabs:
+                    frame = ttk.Frame(page)
+                    page.add(frame, text=tab_label)
+                    builder(frame, self)
+            self._group_notebooks[key] = page
 
             btn = ttk.Button(switcher, text=label, style="Group.TButton",
                               command=lambda k=key: _show_group(k))
             btn.pack(side=tk.LEFT, padx=(0, 4), ipady=2)
             self._group_buttons[key] = btn
 
-        _show_group("manage")
+        self._launch_btn = ttk.Button(switcher, text=t("▶ Launch Nuclear Option"),
+                                       style="Launch.TButton", command=self.launch_game)
+        self._launch_btn.pack(side=tk.RIGHT, ipady=2)
+
+        def _refresh_gating():
+            ready = nom_steam.is_mod_ready(self._settings.get("game_root", ""))
+            for gk in _GATED_GROUPS:
+                self._group_buttons[gk].configure(state=("normal" if ready else "disabled"))
+            if not ready and self._active_group in _GATED_GROUPS:
+                _show_group("setup")
+            self._launch_btn.configure(
+                state=("normal" if nom_steam.is_valid_game_root(self._settings.get("game_root", "")) else "disabled"))
+
+        self.register_settings_listener(_refresh_gating)
+        initial = "manage" if nom_steam.is_mod_ready(self._settings.get("game_root", "")) else "setup"
+        _show_group(initial)
+        _refresh_gating()
+
+    def launch_game(self):
+        try:
+            os.startfile(f"steam://rungameid/{nom_steam.NUCLEAR_OPTION_APPID}")
+        except Exception as e:
+            ui_util.error(self, t("Couldn't Launch"), str(e))
 
     def _on_close(self):
         self.destroy()
