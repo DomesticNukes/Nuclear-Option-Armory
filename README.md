@@ -1,5 +1,7 @@
 # Nuclear Option Mod Manager
 
+[![Build](https://github.com/DomesticNukes/Nuclear-Option-Mod-Manager/actions/workflows/build.yml/badge.svg)](https://github.com/DomesticNukes/Nuclear-Option-Mod-Manager/actions/workflows/build.yml)
+
 A Windows app for managing **Nuclear Option** mods — BepInEx plugins, saved missions, and aircraft
 liveries — in one place. A companion tool to the [R.U.S.E. Mod Manager](https://github.com/), sharing
 its dark navy/gold "Field Operations" visual theme (`theme.py` / `ui_util.py`, copied verbatim) but
