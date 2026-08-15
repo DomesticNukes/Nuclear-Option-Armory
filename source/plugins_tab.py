@@ -15,6 +15,7 @@ import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, font, ttk
 
+import blueprinter_installer
 import nom_plugin_meta as npm
 import theme
 import ui_util
@@ -66,6 +67,12 @@ class _Tab:
         ttk.Separator(actions, orient="vertical").pack(side=tk.LEFT, fill="y", padx=6)
         ttk.Button(actions, text=t("Reveal Library"), command=self.reveal_library).pack(side=tk.LEFT, padx=2)
         ttk.Button(actions, text=t("Reveal BepInEx/plugins"), command=self.reveal_deployed).pack(side=tk.LEFT, padx=2)
+        ttk.Separator(actions, orient="vertical").pack(side=tk.LEFT, fill="y", padx=6)
+        self.blueprinter_btn = ttk.Button(actions, text=t("Get Blueprinter"), command=self.get_blueprinter)
+        self.blueprinter_btn.pack(side=tk.LEFT, padx=2)
+        ui_util.tooltip(self.blueprinter_btn, t(
+            "Downloads nikkorap's Blueprinter — the base loader for .nobp asset bundles used by "
+            "several other mods. github.com/nikkorap/NOBlueprinter-Releases"))
 
         self.deploy_btn = ttk.Button(actions, text=t("Apply (Deploy)"), command=self.deploy)
         self.deploy_btn.pack(side=tk.RIGHT, padx=2)
@@ -339,6 +346,71 @@ class _Tab:
             os.startfile(plugins_dir)
         except Exception as e:
             ui_util.error(self.app, t("Couldn't Open Folder"), str(e))
+
+    # ── Blueprinter one-click install ───────────────────────────────────
+
+    def _find_blueprinter(self):
+        """Existing library entry with Blueprinter's GUID, or None."""
+        for var, path in self.plugin_vars:
+            if self._get_meta(path).guid == blueprinter_installer.BLUEPRINTER_GUID:
+                return path
+        return None
+
+    def get_blueprinter(self):
+        library = Path(self.app._settings.get("plugin_library", ""))
+        if not library.is_dir():
+            ui_util.warning(self.app, t("No Library Folder"),
+                             t("Set a plugin library folder in Settings first."))
+            return
+        self.blueprinter_btn.configure(state="disabled")
+        self.status_var.set(t("Checking latest Blueprinter release…"))
+
+        def lookup():
+            release = blueprinter_installer.find_latest_release()
+            self.app.after(0, lambda: self._confirm_and_install_blueprinter(release, library))
+
+        threading.Thread(target=lookup, daemon=True).start()
+
+    def _confirm_and_install_blueprinter(self, release, library: Path):
+        if not release:
+            self.blueprinter_btn.configure(state="normal")
+            self.status_var.set("")
+            ui_util.error(self.app, t("Couldn't Check for Updates"),
+                           t("Couldn't reach GitHub to look up the latest Blueprinter release."))
+            return
+
+        existing = self._find_blueprinter()
+        already_note = t(" You already have a copy — this will update it.") if existing else ""
+        size_kb = release.size // 1024
+        ok = ui_util.confirm(
+            self.app, t("Install Blueprinter?"),
+            t("This will download {name} ({size} KB) from "
+              "github.com/nikkorap/NOBlueprinter-Releases (by nikkorap) into your plugin "
+              "library.{note} Continue?", name=release.asset_name, size=size_kb, note=already_note))
+        if not ok:
+            self.blueprinter_btn.configure(state="normal")
+            self.status_var.set("")
+            return
+
+        self.status_var.set(t("Downloading Blueprinter…"))
+
+        def worker():
+            try:
+                dest = blueprinter_installer.install(release, library)
+                self.app.after(0, lambda: self._blueprinter_install_finished(dest, None))
+            except Exception as e:
+                self.app.after(0, lambda: self._blueprinter_install_finished(None, e))
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _blueprinter_install_finished(self, dest, error):
+        self.blueprinter_btn.configure(state="normal")
+        if error:
+            self.status_var.set("")
+            ui_util.error(self.app, t("Install Failed"), str(error))
+            return
+        self.status_var.set(t("Blueprinter installed: {name}", name=dest.name))
+        self.scan_library()
 
     def deploy(self):
         game_root = self.app._settings.get("game_root", "")

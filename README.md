@@ -40,7 +40,9 @@ folder, lets you tick which ones are active, and copies exactly those into the l
 button. It reads each plugin's name/GUID/version straight out of the compiled DLL — no need to run
 the game first — and can edit a plugin's `.cfg` settings file in a themed form. Unlike a typical
 "mod manager," there's no backup/restore: BepInEx plugins are standalone files, not a patch over
-the game's own data, so there's nothing to restore.
+the game's own data, so there's nothing to restore. A "Get Blueprinter" button one-click installs
+[nikkorap's Blueprinter](https://github.com/nikkorap/NOBlueprinter-Releases) — the base loader
+several other community mods depend on for `.nobp` asset bundles.
 
 **Missions tab** — organizes missions saved by the in-game mission editor
 (`%USERPROFILE%\AppData\LocalLow\Shockfront\NuclearOption\Missions\`): rename, duplicate, delete
@@ -87,6 +89,10 @@ The dark navy/gold "Field Operations" theme and the general feel of this app's U
 **[LittleGroove](https://github.com/LittleGroove)**'s **[R.U.S.E. Mod Manager](https://github.com/LittleGroove/RUSE-Mod-Manager)**
 — `theme.py` and `ui_util.py` are copied from it essentially verbatim. If you mod R.U.S.E., go
 check that project out.
+
+The Plugins tab's "Get Blueprinter" button downloads **[nikkorap](https://github.com/nikkorap)**'s
+**[Blueprinter](https://github.com/nikkorap/NOBlueprinter-Releases)** mod — this app doesn't ship
+or modify it, just automates grabbing the same file from nikkorap's own releases page.
 
 ## License
 
