@@ -189,8 +189,8 @@ is also installed (`winget install JRSoftware.InnoSetup`), it additionally build
   in-game F1 settings screen. Both installed straight from the BepInEx team's own releases.
 - **[ManlyMarco](https://github.com/ManlyMarco)** — [RuntimeUnityEditor](https://github.com/ManlyMarco/RuntimeUnityEditor),
   the live in-game inspector bundled as part of the Live Editor Suite.
-- **Shockfront** — the developer of Nuclear Option itself. This app only manages mods for it and
-  doesn't modify, redistribute, or include any of the game's own files.
+- **Shockfront** — thank you for making Nuclear Option, and for building it in a way that welcomes
+  modding in the first place. None of this app would exist without that.
 - **[Harmony](https://github.com/pardeike/Harmony)** — the runtime-patching library used by the Mod
   Creator's Harmony Patch template and by the generated Armory Stat Override plugin.
 - **[PyInstaller](https://pyinstaller.org)** and **[Inno Setup](https://jrsoftware.org/isinfo.php)**

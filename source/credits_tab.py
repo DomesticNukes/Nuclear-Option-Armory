@@ -45,8 +45,8 @@ def build(parent, app):
 
     _entry(
         credits, "Shockfront", t("Developer of Nuclear Option"), "store.steampowered.com/app/2168680",
-        t("Nuclear Option itself — this app only manages mods for it and doesn't modify, "
-          "redistribute, or include any of the game's own files."),
+        t("Thank you for making Nuclear Option, and for building it in a way that welcomes modding "
+          "in the first place — none of this app would exist without that."),
         first=True)
 
     _entry(
