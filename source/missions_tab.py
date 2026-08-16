@@ -16,6 +16,7 @@ import tkinter as tk
 from pathlib import Path
 from tkinter import ttk
 
+import nom_steam
 import theme
 import ui_util
 from i18n import t
@@ -47,6 +48,37 @@ def _mission_json_path(folder: Path) -> Path:
         if p.name not in ("meta.json", "workshop.json"):
             return p
     return folder / f"{folder.name}.json"
+
+
+def _subscribed_mission_folders() -> list:
+    """Steam Workshop items subscribed for this game, filtered to real missions via each item's
+    own workshop.json — Nuclear Option writes {"TypeHint": "Mission"} for mission uploads and a
+    different TypeHint (e.g. "AircraftLivery") for skins, confirmed real on this machine, so
+    liveries sharing the same content folder are correctly excluded here (see skins_tab.py for
+    the livery side of this same split)."""
+    folders = []
+    for content_dir in nom_steam.find_workshop_content_dirs():
+        try:
+            children = list(content_dir.iterdir())
+        except OSError:
+            continue
+        for child in children:
+            if not child.is_dir():
+                continue
+            ws = _read_json(child / "workshop.json")
+            if isinstance(ws, dict) and ws.get("TypeHint") == "Mission":
+                folders.append(child)
+    return folders
+
+
+def _display_name(folder: Path) -> str:
+    """meta.json's FileName when present (the real mission title — subscribed Workshop folders are
+    named by their numeric Steam published-file ID, not anything human-readable), else the folder
+    name itself as a fallback."""
+    meta = _read_json(folder / "meta.json")
+    if isinstance(meta, dict) and meta.get("FileName"):
+        return str(meta["FileName"])
+    return folder.name
 
 
 def _unique_path(base: Path) -> Path:
@@ -93,6 +125,7 @@ class _Tab:
     def __init__(self, parent, app):
         self.app = app
         self.folders = []   # list[Path], in display order matching the Treeview rows
+        self._subscribed_keys = set()   # str(Path) of entries sourced from Steam Workshop, not local
         self._build_widgets(parent)
         self.refresh()
 
@@ -119,13 +152,14 @@ class _Tab:
         self.tree = ttk.Treeview(list_frame, columns=("workshop",), show="tree headings", selectmode="browse")
         self.tree.heading("#0", text=t("Mission"))
         self.tree.heading("workshop", text=t("Workshop"))
-        self.tree.column("workshop", width=90, anchor="center", stretch=False)
+        self.tree.column("workshop", width=100, anchor="center", stretch=False)
         sb = ttk.Scrollbar(list_frame, orient="vertical", command=self.tree.yview)
         self.tree.configure(yscrollcommand=sb.set)
         self.tree.pack(side=tk.LEFT, fill="both", expand=True)
         sb.pack(side=tk.RIGHT, fill="y")
         self.tree.bind("<<TreeviewSelect>>", lambda e: self._update_detail())
-        self.tree.tag_configure("published", foreground=theme.HUD)   # HUD green — live on Workshop
+        self.tree.tag_configure("published", foreground=theme.HUD)    # HUD green — YOU published this
+        self.tree.tag_configure("subscribed", foreground=theme.GOLD)  # gold — someone else's, subscribed
 
         detail_frame = ttk.LabelFrame(body, text=t("Details"))
         body.add(detail_frame, weight=2)
@@ -137,21 +171,44 @@ class _Tab:
         root = self.app.missions_dir()
         self.tree.delete(*self.tree.get_children())
         self.folders = []
-        if not root.is_dir():
-            self.status_var.set(t("No missions folder found yet — save a mission in-game first."))
+        self._subscribed_keys = set()
+
+        local_found = []
+        if root.is_dir():
+            local_found = sorted(
+                (p for p in root.iterdir()
+                 if p.is_dir() and p.name != _DELETED_SUBDIR and (p / "meta.json").is_file()),
+                key=lambda p: p.name.lower())
+        subscribed_found = sorted(_subscribed_mission_folders(), key=lambda p: p.name.lower())
+
+        if not local_found and not subscribed_found:
+            self.status_var.set(t("No missions found yet — save one in-game first, "
+                                   "or subscribe to one on the Steam Workshop."))
             self._update_detail()
             return
-        found = sorted(
-            (p for p in root.iterdir() if p.is_dir() and p.name != _DELETED_SUBDIR and (p / "meta.json").is_file()),
-            key=lambda p: p.name.lower())
-        for folder in found:
+
+        for folder in local_found:
             published = (folder / "workshop.json").is_file()
             self.tree.insert("", tk.END, iid=str(folder), text=folder.name,
-                              values=(t("Yes") if published else "",),
+                              values=(t("Published") if published else "",),
                               tags=("published",) if published else ())
             self.folders.append(folder)
-        self.status_var.set(t("{n} mission(s).", n=len(found)))
+
+        for folder in subscribed_found:
+            self.tree.insert("", tk.END, iid=str(folder), text=_display_name(folder),
+                              values=(t("Subscribed"),), tags=("subscribed",))
+            self.folders.append(folder)
+            self._subscribed_keys.add(str(folder))
+
+        if subscribed_found:
+            self.status_var.set(t("{n} mission(s) — {s} subscribed from the Workshop.",
+                                   n=len(self.folders), s=len(subscribed_found)))
+        else:
+            self.status_var.set(t("{n} mission(s).", n=len(self.folders)))
         self._update_detail()
+
+    def _is_subscribed(self, folder: Path) -> bool:
+        return str(folder) in self._subscribed_keys
 
     def _selected_folder(self):
         sel = self.tree.selection()
@@ -165,6 +222,9 @@ class _Tab:
             self.detail_var.set(t("Select a mission to see details."))
             return
         lines = [t("Folder: {name}", name=folder.name)]
+        if self._is_subscribed(folder):
+            lines.append(t("Source: Steam Workshop (subscribed) — Steam manages this copy; "
+                            "use Duplicate to make an editable local one."))
         json_path = _mission_json_path(folder)
         data = _read_json(json_path) if json_path.is_file() else None
         if isinstance(data, dict):
@@ -187,6 +247,12 @@ class _Tab:
     def rename_selected(self):
         folder = self._selected_folder()
         if folder is None:
+            return
+        if self._is_subscribed(folder):
+            ui_util.warning(self.app, t("Steam Workshop Item"),
+                             t("This mission is managed by Steam, not by you — renaming its cache "
+                               "folder would just get undone on the next sync. Use Duplicate to "
+                               "make an editable local copy first."))
             return
         new_name = _prompt_text(self.app, t("Rename Mission"), t("New name:"), initial=folder.name)
         if not new_name or new_name == folder.name:
@@ -219,10 +285,19 @@ class _Tab:
         folder = self._selected_folder()
         if folder is None:
             return
-        dest = _unique_path(folder.with_name(f"{folder.name} - Copy"))
+        if self._is_subscribed(folder):
+            # A subscribed item's own folder is Steam-managed cache named by numeric ID — the
+            # useful "duplicate" here is an editable LOCAL copy, named after the mission's real
+            # title, dropped into the same Missions folder saved-in-game missions use.
+            base_name = _display_name(folder)
+            dest = _unique_path(self.app.missions_dir() / f"{base_name} - Copy")
+        else:
+            dest = _unique_path(folder.with_name(f"{folder.name} - Copy"))
         try:
+            dest.parent.mkdir(parents=True, exist_ok=True)
             shutil.copytree(folder, dest)
             self._rename_mission_contents(dest, dest.name)
+            (dest / "workshop.json").unlink(missing_ok=True)   # a copy isn't the same Workshop item
         except Exception as e:
             ui_util.error(self.app, t("Duplicate Failed"), str(e))
             return
@@ -231,6 +306,12 @@ class _Tab:
     def delete_selected(self):
         folder = self._selected_folder()
         if folder is None:
+            return
+        if self._is_subscribed(folder):
+            ui_util.warning(self.app, t("Steam Workshop Item"),
+                             t("This mission lives in Steam's own Workshop cache, not your local "
+                               "missions — to remove it, unsubscribe from it on the Workshop page "
+                               "in-game or in your browser instead."))
             return
         if not ui_util.confirm(self.app, t("Delete Mission"),
                                 t("Move \"{name}\" to the Deleted Missions holding folder?", name=folder.name)):

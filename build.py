@@ -7,9 +7,10 @@ Usage:
     python build.py
 
 Produces dist/Nuclear Option Armory.exe — a single-file, windowed (no console) build.
-lang/ is bundled alongside the app so i18n.py's data_dir() (which reads from sys._MEIPASS when
-frozen) finds it. settings.json / plugin_library_state.json are NOT bundled — they're written next
-to the exe at runtime (nom_app._LAUNCH_DIR resolves to sys.executable's folder when frozen).
+lang/ and data/ are bundled alongside the app so i18n.py's data_dir() and unit_stat_catalog.py's
+seed-file loader (both of which read from sys._MEIPASS when frozen) find them. settings.json /
+plugin_library_state.json are NOT bundled — they're written next to the exe at runtime
+(nom_app._LAUNCH_DIR resolves to sys.executable's folder when frozen).
 
 The installer step is optional and never fails the exe build: if Inno Setup isn't installed, this
 just prints where to get it (or run `winget install JRSoftware.InnoSetup`) and stops after the exe.
@@ -62,6 +63,7 @@ def build_exe():
         "--specpath", str(ROOT),
         "--paths", str(SOURCE),
         "--add-data", f"{SOURCE / 'lang'}{sep}lang",
+        "--add-data", f"{SOURCE / 'data'}{sep}data",
     ]
     if ICON.is_file():
         args += ["--icon", str(ICON)]

@@ -1,0 +1,36 @@
+{
+  "_provenance": "Real jsonKeys scraped straight from actual saved mission JSON files (unit_stat_catalog.known_unit_keys) on 2026-08-16 — not fabricated, not guessed. Shipped so a fresh install's Unit Editor picker has full category coverage without requiring the same mission-building/live-game-run legwork the maintainer went through. Never hand-edit values in here; regenerate via tools/rebake_unit_seed.py so it always reflects a real scrape.",
+  "Aircraft": [
+    "AttackHelo1", "CAS1", "COIN", "Darkreach", "EW1", "FastBomber1", "Fighter1",
+    "Multirole1", "QuadVTOL1", "SmallFighter1", "UtilityHelo1", "VTOLTrainer1", "trainer"
+  ],
+  "Vehicle": [
+    "6x6_1_AA", "6x6_1_APC", "6x6_1_AT", "6x6_1_IFV", "AFV8_APC", "AFV8_IFV", "AFV8_SAM",
+    "CRAMTrailer1", "HLT-FC", "HLT-FT", "HLT-L", "HLT-M", "HLT-MART", "HLT-R", "HLT-T",
+    "LCV45", "LaserTrailer1", "LightTruck1_AA", "LightTruck1_AT", "Linebreaker_APC",
+    "Linebreaker_IFV", "Linebreaker_SAM", "MBT", "MBT1", "RadarSAM1", "SAMTrailer1",
+    "SPAAG1", "SPAAG2", "Truck2-CRAM", "Truck2-FC", "Truck2-FT", "Truck2-L", "Truck2-LADS",
+    "Truck2-M", "Truck2-MLRS", "Truck2-MRAP", "Truck2-R", "Truck2-RSAM", "Truck2-T",
+    "Truck2-TBM", "Truck2-TBM-N", "UGV1_SAM", "UGV1_grenade", "UGVDozer1"
+  ],
+  "Ship": [
+    "AssaultCarrier1", "Corvette1", "Destroyer1", "FleetCarrier1", "Frigate1",
+    "LandingCraft1", "PatrolBoat1", "SmallCarrier1"
+  ],
+  "Building": [
+    "Emplacement1_23mm", "Emplacement1_ATGM", "Emplacement1_MANPADS", "Emplacement1_MG",
+    "Helipad", "Platform_large", "VehicleDepot1", "ammoDump", "ammunitionBunker",
+    "controlTower1", "enrichmentPlant1", "factory_large", "factory_tall", "fuelTank1",
+    "gabionBunker1", "guardTower1", "hangar_med", "pillbox", "radarStation1",
+    "refinery_main", "revetment1", "shelter1", "storageTank"
+  ],
+  "Weapon": [
+    "AAM1", "AAM2", "AAM3", "AAM4", "AGM1", "AGM2", "AGM_heavy", "AGM_scanner1", "ARH1",
+    "ARM1", "AShM1", "AShM2", "AShM3", "CruiseMissile1", "CruiseMissile20kt",
+    "Missile_G2G", "Rocket1", "Rocket2", "Rocket_MLRS1", "SAM_IR1", "SAM_Radar1",
+    "SAM_Radar2", "Shell_127mm_guided", "Shell_155mm_guided", "Shell_76mm_guided",
+    "ballisticMissile1", "ballisticMissile1_tacNuke", "bomb500", "bomb_125_1",
+    "bomb_250_1", "bomb_250_glide", "bomb_500_glide", "bomb_demolition", "bomb_glide1",
+    "bomb_penetrator1", "nuclearBomb1", "nuclearBomb1_strategic", "submunition1"
+  ]
+}

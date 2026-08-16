@@ -42,8 +42,11 @@ import nom_steam
 
 _SETTINGS_FILE = _LAUNCH_DIR / "settings.json"
 
-_PULSE_PERIOD_SEC = 5.0     # one full dim->bright->dim cycle
-_PULSE_SAT_DELTA = 0.15     # how far saturation swings each way — kept small on purpose
+_PULSE_PERIOD_SEC = 10.0    # one full green->yellow->green cycle
+_PULSE_COLOR_A = theme.HUD        # green
+_PULSE_COLOR_B = theme.GOLD_BRT   # yellow — reuses the app's existing bright-gold token rather
+                                   # than inventing a new colour, so it still reads as "this app's
+                                   # palette," not an arbitrary flash.
 
 
 def _hex_to_rgb01(hex_color):
@@ -55,13 +58,33 @@ def _rgb01_to_hex(rgb):
     return "#" + "".join(f"{max(0, min(255, round(c * 255))):02x}" for c in rgb)
 
 
-def _pulse_color(base_hex: str, t: float) -> str:
-    """`base_hex` with its saturation gently oscillating over a _PULSE_PERIOD_SEC cycle — hue and
-    value stay fixed, so it reads as the same colour breathing, not a colour change."""
-    r, g, b = _hex_to_rgb01(base_hex)
-    h, s, v = colorsys.rgb_to_hsv(r, g, b)
+def _pulse_color(t: float) -> str:
+    """Fades between _PULSE_COLOR_A (green) and _PULSE_COLOR_B (yellow), smoothly eased so the
+    reversal at each end doesn't feel like a sudden direction change, over one full
+    _PULSE_PERIOD_SEC cycle (green at t=0, yellow at the midpoint, back to green at the end).
+
+    Interpolated in HSV (hue + value), NOT raw RGB — a straight RGB blend of two already-saturated
+    colours measurably dips in saturation partway through (checked against the app's real
+    HUD/GOLD_BRT tokens: ~80%/79% at the endpoints down to ~66% blended), which is what read as
+    the fade looking less vivid "between" the two colours. Holding saturation at the stronger of
+    the two endpoints throughout keeps every frame of the cycle equally vivid, not just the ends."""
     phase = (t % _PULSE_PERIOD_SEC) / _PULSE_PERIOD_SEC
-    s = max(0.0, min(1.0, s + math.sin(phase * 2 * math.pi) * _PULSE_SAT_DELTA))
+    blend = (1 - math.cos(phase * 2 * math.pi)) / 2
+
+    ah, a_s, av = colorsys.rgb_to_hsv(*_hex_to_rgb01(_PULSE_COLOR_A))
+    bh, b_s, bv = colorsys.rgb_to_hsv(*_hex_to_rgb01(_PULSE_COLOR_B))
+
+    # Shortest path around the hue wheel (hue wraps at 0/1), so the fade takes the direct route
+    # from green to yellow instead of the long way around through blue/purple/red.
+    dh = bh - ah
+    if dh > 0.5:
+        dh -= 1.0
+    elif dh < -0.5:
+        dh += 1.0
+    h = (ah + dh * blend) % 1.0
+    s = max(a_s, b_s)
+    v = av + (bv - av) * blend
+
     return _rgb01_to_hex(colorsys.hsv_to_rgb(h, s, v))
 
 # 32x32 gold reticle-on-navy placeholder icon, drawn at runtime (no external asset / dependency).
@@ -106,7 +129,7 @@ class NomApp(tk.Tk):
     def __init__(self):
         super().__init__()
         self.withdraw()   # stay hidden until startup finishes; deiconify() at the end of __init__
-        self.minsize(900, 640)
+        self.minsize(1100, 760)
         self.resizable(True, True)
         self.configure(background=theme.BG)
 
@@ -126,13 +149,20 @@ class NomApp(tk.Tk):
         self._build_ui()
         self.protocol("WM_DELETE_WINDOW", self._on_close)
 
-        # Centre the window on screen before showing it (Tk otherwise leaves it at a monitor corner).
+        # Open noticeably larger than the bare minimum — the tab content (Unit Editor's field list
+        # + queue + build log, Plugins' list + details, etc.) reads as cramped at the old 900x640
+        # default and previously had to be manually resized every launch. Grows further still if a
+        # tab's natural content needs more (never shrinks below that), and clamps to the screen so
+        # it can't open larger than the display. Centred before being shown so it never flashes at
+        # the monitor's top-left corner first.
         try:
             self.update_idletasks()
-            w, h = self.winfo_reqwidth(), self.winfo_reqheight()
+            target_w, target_h = 1280, 860
+            w = min(max(self.winfo_reqwidth(), target_w), self.winfo_screenwidth() - 40)
+            h = min(max(self.winfo_reqheight(), target_h), self.winfo_screenheight() - 80)
             x = (self.winfo_screenwidth() - w) // 2
             y = (self.winfo_screenheight() - h) // 3
-            self.geometry(f"+{max(x, 0)}+{max(y, 0)}")
+            self.geometry(f"{w}x{h}+{max(x, 0)}+{max(y, 0)}")
         except Exception:
             pass
         self.deiconify()
@@ -299,11 +329,10 @@ class NomApp(tk.Tk):
             pass
 
     def _auto_detect_plugin_library(self):
-        default_stash = Path.home() / "Desktop" / "Game Mods" / "Nuclear Option Mods"
         try:
-            if default_stash.is_dir():
-                self._settings["plugin_library"] = str(default_stash)
-                self.save_settings()
+            import plugin_library
+            self._settings["plugin_library"] = str(plugin_library.auto_detect_library())
+            self.save_settings()
         except Exception:
             pass
 
@@ -336,29 +365,51 @@ class NomApp(tk.Tk):
     # ── UI construction ──────────────────────────────────────────────────────
 
     def _build_ui(self):
-        import setup_tab
+        import config_tab
         import plugins_tab
         import missions_tab
         import skins_tab
         import mod_creator_tab
-        import settings_tab
+        import unit_editor_tab
+        import unit_editor_queue_tab
+        import live_editor_tab
+        import config_editor_tab
+        import credits_tab
 
-        # Four top-level groups, switched via the bar below rather than one flat row of tabs:
-        #   SETUP    — the gating checklist (game directory, BepInEx) — single tab, always reachable
-        #   MANAGE   — day-to-day mod management (Plugins/Missions/Skins) — locked until setup's done
-        #   CREATE   — build tools (Mod Creator) — locked until setup's done
-        #   SETTINGS — day-to-day preferences (plugin library, about) — single tab, next to Create
+        # Five top-level groups, switched via the bar below rather than one flat row of tabs:
+        #   CONFIG       — the gating checklist (game directory, BepInEx) — single tab, always reachable
+        #   MANAGE       — day-to-day mod management (Plugins/Missions/Skins) — locked until config's done
+        #   UNIT EDITOR  — one sub-tab per unit category, plus a shared Queue & Build tab — split
+        #                  out from CREATE since it's a big, self-contained editing surface —
+        #                  locked until config's done (it compiles/deploys a plugin like CREATE does)
+        #   CREATE       — build tools (Mod Creator, Live Editor Suite, Config Editor) — locked until config's done
+        #   CREDITS      — about block + full attribution list — single tab, next to Create
+        def _unit_editor_category(category):
+            return lambda p, a: unit_editor_tab.build(p, a, category)
+
         groups = [
-            ("setup", t("SETUP"), [(t("Setup"), setup_tab.build)]),
+            ("config", t("CONFIG"), [(t("Config"), config_tab.build)]),
             ("manage", t("MANAGE"), [
                 (t("  Plugins  "), plugins_tab.build),
                 (t("  Missions  "), missions_tab.build),
                 (t("  Skins  "), skins_tab.build),
             ]),
-            ("create", t("CREATE"), [(t("Mod Creator"), mod_creator_tab.build)]),
-            ("settings", t("SETTINGS"), [(t("Settings"), settings_tab.build)]),
+            ("unit_editor", t("UNIT EDITOR"), [
+                (t("Aircraft"), _unit_editor_category("Aircraft")),
+                (t("Vehicle"), _unit_editor_category("Vehicle")),
+                (t("Ship"), _unit_editor_category("Ship")),
+                (t("Building"), _unit_editor_category("Building")),
+                (t("Weapon"), _unit_editor_category("Weapon")),
+                (t("Queue & Build"), unit_editor_queue_tab.build),
+            ]),
+            ("create", t("CREATE"), [
+                (t("Mod Creator"), mod_creator_tab.build),
+                (t("Live Editor Suite"), live_editor_tab.build),
+                (t("Config Editor"), config_editor_tab.build),
+            ]),
+            ("credits", t("CREDITS"), [(t("Credits"), credits_tab.build)]),
         ]
-        _GATED_GROUPS = ("manage", "create")
+        _GATED_GROUPS = ("manage", "unit_editor", "create")
 
         switcher = ttk.Frame(self)
         switcher.pack(fill="x", padx=6, pady=(6, 0))
@@ -370,6 +421,7 @@ class NomApp(tk.Tk):
 
         self._group_notebooks = {}
         self._group_buttons = {}
+        self._tab_frames = {}   # (group_key, tab_label) -> ttk.Frame, for goto()
         self._active_group = None
 
         def _show_group(key):
@@ -381,6 +433,8 @@ class NomApp(tk.Tk):
             for gkey, btn in self._group_buttons.items():
                 btn.configure(style=("GroupActive.TButton" if gkey == key else "Group.TButton"))
             self._active_group = key
+
+        self.show_group = _show_group
 
         for key, label, tabs in groups:
             if len(tabs) == 1:
@@ -394,6 +448,7 @@ class NomApp(tk.Tk):
                     frame = ttk.Frame(page)
                     page.add(frame, text=tab_label)
                     builder(frame, self)
+                    self._tab_frames[(key, tab_label)] = frame
             self._group_notebooks[key] = page
 
             btn = ttk.Button(switcher, text=label, style="Group.TButton",
@@ -411,14 +466,31 @@ class NomApp(tk.Tk):
             for gk in _GATED_GROUPS:
                 self._group_buttons[gk].configure(state=("normal" if ready else "disabled"))
             if not ready and self._active_group in _GATED_GROUPS:
-                _show_group("setup")
+                _show_group("config")
             self._launch_btn.configure(
                 state=("normal" if nom_steam.is_valid_game_root(self._settings.get("game_root", "")) else "disabled"))
 
         self.register_settings_listener(_refresh_gating)
-        initial = "manage" if nom_steam.is_mod_ready(self._settings.get("game_root", "")) else "setup"
+        initial = "manage" if nom_steam.is_mod_ready(self._settings.get("game_root", "")) else "config"
         _show_group(initial)
         _refresh_gating()
+
+    def goto(self, group_key: str, tab_label: str = None):
+        """Switch the switcher bar to `group_key` and, for a multi-tab group, select the tab whose
+        label is `tab_label` (matched by containment so callers don't need the exact padded label
+        string, e.g. "Plugins" for the "  Plugins  " tab). Safe no-op if the group is gated/locked
+        or the tab isn't found."""
+        self.show_group(group_key)
+        if tab_label is None:
+            return
+        notebook = self._group_notebooks.get(group_key)
+        for (gkey, label), frame in self._tab_frames.items():
+            if gkey == group_key and tab_label.strip().lower() in label.strip().lower():
+                try:
+                    notebook.select(frame)
+                except Exception:
+                    pass
+                return
 
     def launch_game(self):
         try:
@@ -427,14 +499,14 @@ class NomApp(tk.Tk):
             ui_util.error(self, t("Couldn't Launch"), str(e))
 
     def _start_launch_button_pulse(self):
-        """A slow saturation breathe on the Launch button — pure flavour, so any failure here
-        (e.g. the window closing mid-tick) must never surface as an error."""
+        """A slow green->yellow colour fade on the Launch button — pure flavour, so any failure
+        here (e.g. the window closing mid-tick) must never surface as an error."""
         style = ttk.Style(self)
         self._pulse_after_id = None
 
         def _tick():
             try:
-                color = _pulse_color(theme.HUD, time.monotonic())
+                color = _pulse_color(time.monotonic())
                 style.configure("Launch.TButton", foreground=color, bordercolor=color)
                 self._pulse_after_id = self.after(100, _tick)
             except Exception:

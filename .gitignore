@@ -2,6 +2,10 @@ __pycache__/
 *.pyc
 source/settings.json
 source/plugin_library_state.json
+source/unit_editor_queue.json
+source/unit_editor_baseline.json
+source/unit_editor_build/
+source/mod_creator_projects/
 build/
 dist/
 dist_installer/

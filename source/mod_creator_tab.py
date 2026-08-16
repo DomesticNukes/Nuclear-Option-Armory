@@ -223,7 +223,7 @@ class _Tab:
         game_root = self.app._settings.get("game_root", "")
         if not nom_steam.is_valid_game_root(game_root):
             ui_util.warning(self.app, t("No Game Folder"),
-                             t("Set a valid Nuclear Option game folder in Settings first."))
+                             t("Set a valid Nuclear Option game folder in Config first."))
             return
         if not nom_steam.is_bepinex_installed(game_root):
             ui_util.warning(self.app, t("BepInEx Not Installed"),
@@ -303,7 +303,7 @@ class _Tab:
                 self.status_var.set(t("Built OK, but couldn't copy to the plugin library: {err}", err=str(e)))
         else:
             self.status_var.set(t(
-                "Built OK: {path} — set a plugin library folder in Settings to auto-copy it there.",
+                "Built OK: {path} — set a plugin library folder in Config to auto-copy it there.",
                 path=str(result.dll_path)))
 
     def _reveal_project_folder(self):

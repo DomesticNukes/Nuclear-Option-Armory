@@ -136,6 +136,33 @@ def find_cfg_for_guid(guid: Optional[str], bepinex_config_dir) -> Optional[Path]
     return candidate if candidate.is_file() else None
 
 
+_CFG_HEADER_NAME_RE = re.compile(r"^##\s*Settings file was created by plugin\s+(.+?)\s+v[^\s]+\s*$")
+_CFG_HEADER_GUID_RE = re.compile(r"^##\s*Plugin GUID:\s*(.+?)\s*$")
+
+
+def plugin_info_from_cfg_header(header_lines) -> "tuple[Optional[str], Optional[str]]":
+    """(name, guid) parsed from BepInEx's own standard ConfigFile header comment —
+
+        ## Settings file was created by plugin <Name> v<Version>
+        ## Plugin GUID: <guid>
+
+    — written verbatim by every BepInEx plugin's config on first save. Works for ANY deployed
+    plugin's .cfg, not just ones this app happens to have metadata for. (name, None)/(None, guid)
+    if only one line matched; (None, None) if neither did. Never raises."""
+    name = guid = None
+    for line in header_lines:
+        if name is None:
+            m = _CFG_HEADER_NAME_RE.match(line.strip())
+            if m:
+                name = m.group(1).strip()
+                continue
+        if guid is None:
+            m = _CFG_HEADER_GUID_RE.match(line.strip())
+            if m:
+                guid = m.group(1).strip()
+    return name, guid
+
+
 # ── BepInEx .cfg parser / renderer ───────────────────────────────────────────
 
 _SECTION_RE = re.compile(r"^\[(.+)\]\s*$")

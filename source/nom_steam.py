@@ -135,3 +135,21 @@ def is_mod_ready(path) -> bool:
     """True if `path` is both a real Nuclear Option install AND has BepInEx installed —
     the combined check anything that actually needs to deploy/compile plugins should use."""
     return is_valid_game_root(path) and is_bepinex_installed(path)
+
+
+def find_workshop_content_dirs(appid: str = NUCLEAR_OPTION_APPID) -> list:
+    """Every existing steamapps/workshop/content/<appid> directory across all Steam libraries —
+    where Steam caches subscribed Workshop items for this game (missions AND aircraft liveries
+    live side by side here; each item's own workshop.json TypeHint field, confirmed real on this
+    machine, is what tells them apart — see missions_tab.py / skins_tab.py). Usually just one
+    directory (Steam downloads Workshop content to the same library the game itself is installed
+    to), but every library is checked defensively, same as find_nuclear_option_dir()."""
+    steam = find_steam_path()
+    if steam is None:
+        return []
+    dirs = []
+    for lib in _find_steam_libraries(steam):
+        candidate = lib / "steamapps" / "workshop" / "content" / appid
+        if candidate.is_dir():
+            dirs.append(candidate)
+    return dirs
