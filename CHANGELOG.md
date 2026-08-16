@@ -4,6 +4,13 @@ All notable changes to Nuclear Option Armory are documented here. Format loosely
 [Keep a Changelog](https://keepachangelog.com/); versions match the app's own `_APP_VERSION`
 constant (shown on the Credits tab).
 
+## [0.6.1] - 2026-08-16
+
+### Added
+
+- Credited **Combat787** on the Credits tab (and README) for **[NOMM](https://github.com/Combat787/NOMM)**,
+  the original Nuclear Option mod manager and the direct inspiration for building Armory.
+
 ## [0.6.0] - 2026-08-16
 
 ### Added

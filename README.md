@@ -171,6 +171,10 @@ is also installed (`winget install JRSoftware.InnoSetup`), it additionally build
 
 ## Special thanks
 
+- **[Combat787](https://github.com/Combat787)** — [NOMM](https://github.com/Combat787/NOMM)
+  (Nuclear Option Mod Manager) was the original dedicated mod manager for this game and the direct
+  inspiration for building Armory in the first place. Armory is a separate, independent project and
+  doesn't share any of NOMM's code, but the idea started there.
 - **[LittleGroove](https://github.com/LittleGroove)** — the dark navy/gold "Field Operations" theme
   and general UI feel of this app come from the
   **[R.U.S.E. Mod Manager](https://github.com/LittleGroove/RUSE-Mod-Manager)**; `theme.py` and

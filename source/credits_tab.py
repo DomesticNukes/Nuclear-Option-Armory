@@ -11,7 +11,7 @@ import theme
 import ui_util
 from i18n import t
 
-_APP_VERSION = "0.6.0"
+_APP_VERSION = "0.6.1"
 
 
 def build(parent, app):
@@ -48,6 +48,12 @@ def build(parent, app):
         t("Nuclear Option itself — this app only manages mods for it and doesn't modify, "
           "redistribute, or include any of the game's own files."),
         first=True)
+
+    _entry(
+        credits, "Combat787", t("Original idea & inspiration — NOMM"), "github.com/Combat787/NOMM",
+        t("NOMM (Nuclear Option Mod Manager) was the original dedicated mod manager for this game "
+          "and the direct inspiration for building Armory in the first place. Armory doesn't share "
+          "any of NOMM's code — a separate, independent project — but the idea started there."))
 
     _entry(
         credits, "LittleGroove", t("Original creator — R.U.S.E. Mod Manager"),
