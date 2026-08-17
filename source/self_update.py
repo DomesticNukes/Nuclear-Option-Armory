@@ -27,7 +27,6 @@ from typing import Callable, Optional
 
 _RELEASES_API = "https://api.github.com/repos/DomesticNukes/Nuclear-Option-Armory/releases/latest"
 _USER_AGENT = "NuclearOptionArmory"
-_PORTABLE_ASSET_NAME = "Nuclear Option Armory.exe"
 
 
 @dataclass
@@ -59,6 +58,18 @@ def is_newer(current: str, candidate: str) -> bool:
     return b > a
 
 
+def _find_portable_asset(assets: list) -> Optional[dict]:
+    """The portable exe asset among a release's assets — NOT matched by an exact filename, because
+    GitHub replaces spaces with dots in release asset names server-side (confirmed real: the CI
+    build produces "Nuclear Option Armory.exe", but the actual published asset is named
+    "Nuclear.Option.Armory.exe") — a hardcoded exact name would never match. Instead: of the two
+    .exe assets build.yml always publishes, the portable build is whichever one ISN'T the "Setup"
+    installer, which stays robust to exactly how GitHub mangles the rest of the name."""
+    exe_assets = [a for a in assets if str(a.get("name", "")).lower().endswith(".exe")]
+    portable = [a for a in exe_assets if "setup" not in str(a.get("name", "")).lower()]
+    return portable[0] if portable else None
+
+
 def find_latest_release() -> Optional[ArmoryRelease]:
     """The latest published GitHub Release, or None on any failure (network, no releases
     published yet, rate limit, API shape change) — never raises. A missing/never-published
@@ -72,12 +83,11 @@ def find_latest_release() -> Optional[ArmoryRelease]:
             return None
         asset_name = asset_url = None
         asset_size = 0
-        for asset in data.get("assets", []):
-            if asset.get("name") == _PORTABLE_ASSET_NAME:
-                asset_name = asset["name"]
-                asset_url = asset["browser_download_url"]
-                asset_size = int(asset.get("size", 0))
-                break
+        portable = _find_portable_asset(data.get("assets", []))
+        if portable:
+            asset_name = portable["name"]
+            asset_url = portable["browser_download_url"]
+            asset_size = int(portable.get("size", 0))
         return ArmoryRelease(
             version=tag.lstrip("vV"), tag=tag,
             html_url=data.get("html_url", ""), notes=data.get("body", "") or "",

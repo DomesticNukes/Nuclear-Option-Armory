@@ -4,6 +4,18 @@ All notable changes to Nuclear Option Armory are documented here. Format loosely
 [Keep a Changelog](https://keepachangelog.com/); versions match the app's own `APP_VERSION`
 constant (`app_version.py`, shown on the Credits tab).
 
+## [0.7.2] - 2026-08-16
+
+### Fixed
+
+- A real bug found immediately after publishing the first-ever GitHub Release (v0.7.1): GitHub
+  replaces spaces with dots in release asset filenames server-side (`Nuclear Option Armory.exe`
+  is actually published as `Nuclear.Option.Armory.exe`), so `self_update.py`'s exact-filename
+  match never found the portable exe asset on a real release — confirmed by checking the real
+  v0.7.1 release via the GitHub API right after publishing it. Now identifies the portable build
+  as "whichever `.exe` asset isn't the Setup installer" instead of an exact name, which stays
+  correct regardless of exactly how GitHub mangles the rest of the filename.
+
 ## [0.7.1] - 2026-08-16
 
 ### Added
