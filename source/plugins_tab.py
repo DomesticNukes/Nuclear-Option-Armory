@@ -18,6 +18,7 @@ from pathlib import Path, PureWindowsPath
 from tkinter import filedialog, font, ttk
 
 import blueprinter_installer
+import dll_inspector as di
 import live_editor_installer as lei
 import nom_plugin_meta as npm
 import plugin_library
@@ -145,9 +146,18 @@ class _Tab:
         self.detail_rows_frame = tk.Frame(detail_frame, background=theme.PANEL)
         self.detail_rows_frame.pack(fill="x", anchor="nw", padx=8, pady=8)
 
-        self.edit_cfg_btn = ttk.Button(detail_frame, text=t("Edit Config…"), command=self._edit_selected_config,
+        btn_row = ttk.Frame(detail_frame)
+        btn_row.pack(anchor="nw", padx=8, pady=(0, 8))
+        self.edit_cfg_btn = ttk.Button(btn_row, text=t("Edit Config…"), command=self._edit_selected_config,
                                         state="disabled")
-        self.edit_cfg_btn.pack(anchor="nw", padx=8, pady=(0, 8))
+        self.edit_cfg_btn.pack(side=tk.LEFT)
+        self.check_compat_btn = ttk.Button(btn_row, text=t("Check Compatibility"),
+                                            command=self._on_check_compatibility_clicked, state="disabled")
+        self.check_compat_btn.pack(side=tk.LEFT, padx=(6, 0))
+        ui_util.tooltip(self.check_compat_btn, t(
+            "Uses DllInspector (a real third-party tool, see the Config tab) to check whether this "
+            "plugin's game-code references still exist in the current Nuclear Option version. "
+            "Needs DllInspector installed and a snapshot generated first, from the Config tab."))
 
     # ── State persistence ────────────────────────────────────────────────
 
@@ -468,6 +478,9 @@ class _Tab:
         if idx is None:
             self._add_detail_row(0, t("Select a plugin to see details."), foreground=theme.DIM)
             self.edit_cfg_btn.configure(state="disabled")
+            self.check_compat_btn.configure(state="disabled")
+            self._compat_anchor_index = 1
+            self._compat_result_row_count = 0
             return
         _, path = self.plugin_vars[idx]
         meta = self._get_meta(path)
@@ -491,6 +504,93 @@ class _Tab:
             self._add_detail_row(row_index, text, foreground=(theme.RED if is_warning else None))
             row_index += 1
         self.edit_cfg_btn.configure(state=("normal" if cfg_path else "disabled"))
+        self.check_compat_btn.configure(state="normal")
+        # _compat_anchor_index is the fixed insertion point right after the base/dependency rows —
+        # set ONCE per selection here, never touched by the compat-check handlers below.
+        # _compat_result_row_count is how many rows the LAST compat check (if any) currently
+        # occupies starting at that anchor, so a re-check can clear exactly those rows — without
+        # tracking this separately, a second click only ever removed its own "Checking…"
+        # placeholder and left the first check's real result rows behind (a real bug caught by
+        # testing: re-running the check kept accumulating rows instead of replacing them).
+        self._compat_anchor_index = row_index
+        self._compat_result_row_count = 0
+
+    # ── Compatibility check (DllInspector) ──────────────────────────────
+
+    def _di_exe_path(self) -> Path:
+        return self.app.state_path("tools") / di.EXE_FILENAME
+
+    def _di_snapshot_path(self) -> Path:
+        return self.app.state_path("tools") / di.SNAPSHOT_FILENAME
+
+    def _on_check_compatibility_clicked(self):
+        idx = self._selected_index()
+        if idx is None:
+            return
+        _, path = self.plugin_vars[idx]
+        exe_path = self._di_exe_path()
+        snapshot_path = self._di_snapshot_path()
+        if not exe_path.is_file() or not snapshot_path.is_file():
+            ui_util.warning(self.app, t("DllInspector Not Ready"),
+                             t("Install DllInspector and generate a snapshot from the Config tab "
+                               "first."))
+            return
+
+        self.check_compat_btn.configure(state="disabled")
+        start_index = self._compat_anchor_index
+        self._remove_detail_rows_from(start_index, self._compat_result_row_count)
+        self._add_detail_row(start_index, t("Checking compatibility…"), foreground=theme.DIM)
+        self._compat_result_row_count = 1
+
+        def worker():
+            try:
+                dll_path = plugin_library.primary_dll(path)
+                result = di.run_modcheck(exe_path, dll_path, snapshot_path)
+            except di.InspectorError as e:
+                message = str(e)
+                self.app.after(0, lambda: self._on_compat_check_failed(idx, start_index, message))
+                return
+            except Exception as e:
+                message = str(e)
+                self.app.after(0, lambda: self._on_compat_check_failed(idx, start_index, message))
+                return
+            self.app.after(0, lambda: self._on_compat_check_finished(idx, start_index, result))
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _remove_detail_rows_from(self, start_index: int, count: int):
+        children = self.detail_rows_frame.winfo_children()
+        for w in children[start_index:start_index + count]:
+            w.destroy()
+
+    def _on_compat_check_failed(self, idx, start_index, message):
+        self.check_compat_btn.configure(state="normal")
+        if self._selected_index() != idx:
+            return   # selection changed while the check was running — stale result, drop it
+        self._remove_detail_rows_from(start_index, self._compat_result_row_count)
+        self._add_detail_row(start_index, t("Compatibility check FAILED: {msg}", msg=message),
+                              foreground=theme.RED)
+        self._compat_result_row_count = 1
+
+    def _on_compat_check_finished(self, idx, start_index, result):
+        self.check_compat_btn.configure(state="normal")
+        if self._selected_index() != idx:
+            return   # selection changed while the check was running — stale result, drop it
+        self._remove_detail_rows_from(start_index, self._compat_result_row_count)
+        row_index = start_index
+        if result.compatible:
+            self._add_detail_row(row_index, t(
+                "Compatibility: OK ({ok}/{total} references found)",
+                ok=result.ok_count, total=result.total_refs))
+            row_index += 1
+        else:
+            self._add_detail_row(row_index, t(
+                "Compatibility: INCOMPATIBLE ({missing}/{total} references missing)",
+                missing=result.missing_count, total=result.total_refs), foreground=theme.RED)
+            row_index += 1
+            for issue in result.issues[:8]:
+                self._add_detail_row(row_index, t("  Missing: {issue}", issue=issue), foreground=theme.RED)
+                row_index += 1
+        self._compat_result_row_count = row_index - start_index
 
     # ── Actions ──────────────────────────────────────────────────────────
 

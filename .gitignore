@@ -6,6 +6,7 @@ source/unit_editor_queue.json
 source/unit_editor_baseline.json
 source/unit_editor_build/
 source/mod_creator_projects/
+source/tools/
 build/
 dist/
 dist_installer/

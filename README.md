@@ -45,6 +45,17 @@ uninstalling it, in case either ever conflicts with something else you're runnin
 the packaged exe, can download and apply the update in place (see
 [Design notes](#design-notes)). Manual only, no automatic check on startup.
 
+**Mod Compatibility Checker** — installs [9138noms](https://github.com/9138noms)'s
+[DllInspector](https://github.com/9138noms/DllInspector), a standalone tool that statically checks
+whether a mod DLL's referenced types/methods/fields/Harmony patches still exist in your currently
+installed Nuclear Option, so you can tell which mod actually broke after a game update instead of
+guessing. Armory downloads the real release and shells out to it — it isn't bundled or modified.
+Generating the snapshot DllInspector checks against only works when your game is installed at
+Steam's exact default path (a real limitation of the tool itself, which hardcodes that path for
+snapshot generation with no override); this section explains why and disables itself with a clear
+message otherwise. Once a snapshot exists, the Plugins tab's **Check Compatibility** button runs it
+against any one plugin.
+
 ### Manage tab
 
 **Plugins** — Nuclear Option mods are BepInEx plugin DLLs (loose files or a folder containing one,
@@ -57,8 +68,12 @@ gets automatically adopted into your library the next time you open this tab, in
 invisible. If a plugin declares a `[BepInDependency(...)]` on another plugin's GUID, the Details
 pane shows whether that dependency is actually present and enabled, warning when a *hard*
 dependency is missing (checked against your library AND anything installed directly into
-BepInEx/plugins, like a Companion Tool). You can also export your currently-enabled set as a
-shareable `.armorypack` and import one someone else sent you. Unlike a typical "mod manager,"
+BepInEx/plugins, like a Companion Tool). A **Check Compatibility** button (needs the Mod
+Compatibility Checker set up on the Config tab first) runs that plugin's DLL against your current
+game version and shows real COMPATIBLE/INCOMPATIBLE verdicts with the specific missing
+type/method/field, or a distinct failure status if the checker itself can't process that DLL. You
+can also export your currently-enabled set as a shareable `.armorypack` and import one someone else
+sent you. Unlike a typical "mod manager,"
 there's no backup/restore: BepInEx plugins are standalone files, not a patch over the game's own
 data, so there's nothing to restore.
 
@@ -198,6 +213,10 @@ is also installed (`winget install JRSoftware.InnoSetup`), it additionally build
   to unlock, copies the new build over it, and relaunches — Windows won't allow overwriting an
   exe's file while it's still executing, so the app closing is what releases the lock the helper is
   waiting on.
+- DllInspector itself throws an unhandled exception on some real mod DLLs (a Mono.Cecil assembly
+  resolution failure, confirmed by running the real tool against real installed plugins) — Armory
+  treats any non-zero exit from it as a distinct "check failed" result rather than either crashing
+  or silently reporting a false compatibility verdict.
 
 ## Special thanks
 
@@ -219,6 +238,8 @@ is also installed (`winget install JRSoftware.InnoSetup`), it additionally build
   in-game F1 settings screen. Both installed straight from the BepInEx team's own releases.
 - **[ManlyMarco](https://github.com/ManlyMarco)** — [RuntimeUnityEditor](https://github.com/ManlyMarco/RuntimeUnityEditor),
   the live in-game inspector bundled as part of the Live Editor Suite.
+- **[9138noms](https://github.com/9138noms)** — [DllInspector](https://github.com/9138noms/DllInspector),
+  the mod-DLL compatibility checker installed from the Config tab and run from the Plugins tab.
 - **Shockfront** — thank you for making Nuclear Option, and for building it in a way that welcomes
   modding in the first place. None of this app would exist without that.
 - **[Harmony](https://github.com/pardeike/Harmony)** — the runtime-patching library used by the Mod

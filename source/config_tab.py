@@ -13,6 +13,7 @@ from tkinter import filedialog, ttk
 
 import bepinex_installer
 import blueprinter_installer
+import dll_inspector as di
 import live_editor_installer as lei
 import nom_plugin_meta as npm
 import nom_steam
@@ -450,7 +451,125 @@ def build(parent, app):
 
     cm_toggle_btn.configure(command=_on_cm_toggle_clicked)
 
+    # ── Mod Compatibility Checker (DllInspector, by 9138noms — a real independent third-party
+    # tool, not something this app authored) — NOT a BepInEx plugin, so it lives in Armory's own
+    # tools folder, never BepInEx/plugins. Checks whether a mod DLL's referenced game types/
+    # members/Harmony-patch-targets still exist in the current Assembly-CSharp.dll, using
+    # Mono.Cecil. Real, confirmed limitation (read from its own source, not guessed): generating a
+    # fresh snapshot only works when game_root matches its hardcoded default Steam path exactly —
+    # see dll_inspector.py's module docstring — so "Generate Snapshot" stays disabled otherwise
+    # rather than silently failing or scanning the wrong game.
+    di_frame = ttk.LabelFrame(body, text=t("Mod Compatibility Checker (DllInspector by 9138noms)"))
+    di_frame.pack(fill="x", pady=(0, 10))
+
+    def _di_tools_dir() -> Path:
+        return app.state_path("tools")
+
+    def _di_exe_path() -> Path:
+        return _di_tools_dir() / di.EXE_FILENAME
+
+    def _di_snapshot_path() -> Path:
+        return _di_tools_dir() / di.SNAPSHOT_FILENAME
+
+    di_status = ttk.Label(di_frame, text="", wraplength=560, justify="left")
+    di_status.grid(row=0, column=0, columnspan=2, sticky="w", padx=8, pady=(8, 2))
+    di_snapshot_status = ttk.Label(di_frame, text="", wraplength=560, justify="left")
+    di_snapshot_status.grid(row=1, column=0, columnspan=2, sticky="w", padx=8, pady=(0, 8))
+
+    di_install_btn = ttk.Button(di_frame, text=t("Install DllInspector"))
+    di_install_btn.grid(row=2, column=0, padx=(8, 4), pady=(0, 8), sticky="w")
+    ui_util.tooltip(di_install_btn, t(
+        "Downloads the real release from github.com/9138noms/DllInspector — Armory doesn't ship "
+        "or modify it, just automates fetching it, the same as BepInEx/Blueprinter."))
+    di_snapshot_btn = ttk.Button(di_frame, text=t("Generate Snapshot"))
+    di_snapshot_btn.grid(row=2, column=1, padx=(4, 8), pady=(0, 8), sticky="w")
+    ui_util.tooltip(di_snapshot_btn, t(
+        "Scans the game's own Assembly-CSharp.dll so plugin compatibility can be checked against "
+        "it from the Plugins tab. Only available when your game folder matches DllInspector's own "
+        "hardcoded default Steam path — a real limitation in the tool itself, not Armory."))
+
+    def _refresh_di():
+        gr = gr_var.get().strip()
+        exe = _di_exe_path()
+        if exe.is_file():
+            di_status.configure(text=t("Installed."), style="Valid.TLabel")
+            di_install_btn.configure(text=t("Reinstall DllInspector"))
+        else:
+            di_status.configure(text=t("Not installed."), style="Invalid.TLabel")
+            di_install_btn.configure(text=t("Install DllInspector"))
+
+        snap = _di_snapshot_path()
+        if snap.is_file():
+            di_snapshot_status.configure(
+                text=t("Snapshot ready ({size} KB).", size=snap.stat().st_size // 1024),
+                style="Valid.TLabel")
+        else:
+            di_snapshot_status.configure(text=t("No snapshot yet."), style="Invalid.TLabel")
+
+        can_snapshot = di.is_default_path(gr) and exe.is_file()
+        di_snapshot_btn.configure(state=("normal" if can_snapshot else "disabled"))
+        if exe.is_file() and not di.is_default_path(gr):
+            di_snapshot_status.configure(text=t(
+                "No snapshot yet. Unavailable: DllInspector can only scan the game at its own "
+                "hardcoded default Steam path, and this install isn't there."), style="Invalid.TLabel")
+
+    def _on_di_install_clicked():
+        di_install_btn.configure(state="disabled")
+        di_status.configure(text=t("Checking latest release…"), style="Invalid.TLabel")
+
+        def lookup():
+            release = di.find_latest_release()
+            app.after(0, lambda: _di_confirm(release))
+        threading.Thread(target=lookup, daemon=True).start()
+
+    def _di_confirm(release):
+        if not release:
+            ui_util.error(app, t("Couldn't Check for Updates"),
+                           t("Couldn't reach GitHub to look up the latest DllInspector release."))
+            _refresh_di()
+            return
+        size_kb = release.asset_size // 1024
+        ok = ui_util.confirm(
+            app, t("Install DllInspector?"),
+            t("This will download {name} ({size} KB) from github.com/9138noms/DllInspector "
+              "into Armory's own tools folder (not BepInEx/plugins — this isn't a game mod). "
+              "Continue?", name=release.asset_name, size=size_kb))
+        if not ok:
+            _refresh_di()
+            return
+        di_status.configure(text=t("Downloading…"), style="Invalid.TLabel")
+
+        def worker():
+            try:
+                di.download(release, _di_exe_path())
+            except Exception as e:
+                message = str(e)
+                app.after(0, lambda: (ui_util.error(app, t("Install Failed"), message), _refresh_di()))
+                return
+            app.after(0, _refresh_di)
+        threading.Thread(target=worker, daemon=True).start()
+
+    di_install_btn.configure(command=_on_di_install_clicked)
+
+    def _on_di_snapshot_clicked():
+        di_snapshot_btn.configure(state="disabled")
+        di_snapshot_status.configure(text=t("Scanning Assembly-CSharp.dll…"), style="Invalid.TLabel")
+
+        def worker():
+            try:
+                di.run_scan(_di_exe_path(), _di_snapshot_path())
+            except di.InspectorError as e:
+                message = str(e)
+                app.after(0, lambda: (ui_util.error(app, t("Scan Failed"), message), _refresh_di()))
+                return
+            app.after(0, _refresh_di)
+        threading.Thread(target=worker, daemon=True).start()
+
+    di_snapshot_btn.configure(command=_on_di_snapshot_clicked)
+
     app.register_settings_listener(_refresh)
     app.register_settings_listener(_refresh_tools)
+    app.register_settings_listener(_refresh_di)
     _refresh()
     _refresh_tools()
+    _refresh_di()

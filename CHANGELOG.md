@@ -4,6 +4,24 @@ All notable changes to Nuclear Option Armory are documented here. Format loosely
 [Keep a Changelog](https://keepachangelog.com/); versions match the app's own `APP_VERSION`
 constant (`app_version.py`, shown on the Credits tab).
 
+## [0.7.3] - 2026-08-16
+
+### Added
+
+- **Mod Compatibility Checker**: installs [9138noms](https://github.com/9138noms)'s
+  [DllInspector](https://github.com/9138noms/DllInspector) from the Config tab, and a new **Check
+  Compatibility** button in the Plugins tab's Details pane runs any one plugin's DLL against your
+  current game version, reporting a real COMPATIBLE/INCOMPATIBLE verdict with the specific missing
+  type/method/field DllInspector found — not just a pass/fail. Snapshot generation (the step that
+  reads your installed game's own code) only works when the game sits at Steam's exact default
+  install path, a real hardcoded limitation in DllInspector itself (confirmed by reading its own
+  source) rather than anything Armory can route around; the Config tab explains this plainly instead
+  of just disabling the button with no reason given.
+- DllInspector itself crashes (an unhandled Mono.Cecil exception) on some real mod DLLs — hit on
+  10 of 35 real plugins tested. Armory surfaces this as its own distinct "check failed" status with
+  the real error message, rather than either crashing itself or silently showing a false
+  compatibility verdict.
+
 ## [0.7.2] - 2026-08-16
 
 ### Fixed
