@@ -14,7 +14,7 @@ import os
 import shutil
 import tkinter as tk
 from pathlib import Path
-from tkinter import ttk
+from tkinter import filedialog, ttk
 
 import nom_steam
 import theme
@@ -135,6 +135,12 @@ class _Tab:
         ttk.Button(actions, text=t("Rename…"), command=self.rename_selected).pack(side=tk.LEFT, padx=2)
         ttk.Button(actions, text=t("Duplicate"), command=self.duplicate_selected).pack(side=tk.LEFT, padx=2)
         ttk.Button(actions, text=t("Delete"), command=self.delete_selected).pack(side=tk.LEFT, padx=2)
+        ttk.Separator(actions, orient="vertical").pack(side=tk.LEFT, fill="y", padx=6)
+        import_btn = ttk.Button(actions, text=t("Import…"), command=self.import_mission)
+        import_btn.pack(side=tk.LEFT, padx=2)
+        ui_util.tooltip(import_btn, t(
+            "Copies a mission folder from somewhere else on disk (e.g. one someone shared with "
+            "you) into your local Missions folder."))
         ttk.Separator(actions, orient="vertical").pack(side=tk.LEFT, fill="y", padx=6)
         ttk.Button(actions, text=t("Reveal in Explorer"), command=self.reveal_selected).pack(side=tk.LEFT, padx=2)
         ttk.Button(actions, text=t("Refresh"), command=self.refresh).pack(side=tk.LEFT, padx=2)
@@ -300,6 +306,35 @@ class _Tab:
             (dest / "workshop.json").unlink(missing_ok=True)   # a copy isn't the same Workshop item
         except Exception as e:
             ui_util.error(self.app, t("Duplicate Failed"), str(e))
+            return
+        self.refresh()
+
+    def import_mission(self):
+        """Copies a mission folder from anywhere else on disk into the local Missions folder —
+        for one someone shared with you directly (not via Workshop subscribe, which the tab
+        already picks up on its own). Requires a real mission JSON inside the chosen folder, same
+        shape local/duplicated missions already have; meta.json is normalized to match afterward
+        (same helper "Duplicate" already uses), and any workshop.json is stripped since an
+        imported copy isn't that same Workshop item."""
+        chosen = filedialog.askdirectory(title=t("Select a mission folder to import"))
+        if not chosen:
+            return
+        src = Path(chosen)
+        has_mission_json = any(
+            p.name not in ("meta.json", "workshop.json") for p in src.glob("*.json"))
+        if not has_mission_json:
+            ui_util.warning(self.app, t("Not a Mission Folder"),
+                             t("\"{name}\" doesn't contain a mission JSON file.", name=src.name))
+            return
+        missions_dir = self.app.missions_dir()
+        dest = _unique_path(missions_dir / src.name)
+        try:
+            missions_dir.mkdir(parents=True, exist_ok=True)
+            shutil.copytree(src, dest)
+            self._rename_mission_contents(dest, dest.name)
+            (dest / "workshop.json").unlink(missing_ok=True)
+        except Exception as e:
+            ui_util.error(self.app, t("Import Failed"), str(e))
             return
         self.refresh()
 

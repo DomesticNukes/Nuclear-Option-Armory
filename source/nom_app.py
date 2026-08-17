@@ -366,33 +366,41 @@ class NomApp(tk.Tk):
 
     def _build_ui(self):
         import config_tab
+        import update_tab
         import plugins_tab
+        import config_editor_tab
         import missions_tab
         import skins_tab
+        import mod_repo_tab
         import mod_creator_tab
         import unit_editor_tab
         import unit_editor_queue_tab
         import live_editor_tab
-        import config_editor_tab
         import credits_tab
 
         # Five top-level groups, switched via the bar below rather than one flat row of tabs:
-        #   CONFIG       — the gating checklist (game directory, BepInEx) — single tab, always reachable
-        #   MANAGE       — day-to-day mod management (Plugins/Missions/Skins) — locked until config's done
+        #   CONFIG       — the gating checklist (game directory, BepInEx), plus Updates — always reachable
+        #   MANAGE       — day-to-day mod management (Plugins/Plugin Config/Missions/Skins/Search) —
+        #                  locked until config's done
         #   UNIT EDITOR  — one sub-tab per unit category, plus a shared Queue & Build tab — split
         #                  out from CREATE since it's a big, self-contained editing surface —
         #                  locked until config's done (it compiles/deploys a plugin like CREATE does)
-        #   CREATE       — build tools (Mod Creator, Live Editor Suite, Config Editor) — locked until config's done
+        #   CREATE       — build tools (Mod Creator, Live Editor Suite) — locked until config's done
         #   CREDITS      — about block + full attribution list — single tab, next to Create
         def _unit_editor_category(category):
             return lambda p, a: unit_editor_tab.build(p, a, category)
 
         groups = [
-            ("config", t("CONFIG"), [(t("Config"), config_tab.build)]),
+            ("config", t("CONFIG"), [
+                (t("Config"), config_tab.build),
+                (t("Updates"), update_tab.build),
+            ]),
             ("manage", t("MANAGE"), [
                 (t("  Plugins  "), plugins_tab.build),
+                (t("  Plugin Config  "), config_editor_tab.build),
                 (t("  Missions  "), missions_tab.build),
                 (t("  Skins  "), skins_tab.build),
+                (t("  Search  "), mod_repo_tab.build),
             ]),
             ("unit_editor", t("UNIT EDITOR"), [
                 (t("Aircraft"), _unit_editor_category("Aircraft")),
@@ -405,7 +413,6 @@ class NomApp(tk.Tk):
             ("create", t("CREATE"), [
                 (t("Mod Creator"), mod_creator_tab.build),
                 (t("Live Editor Suite"), live_editor_tab.build),
-                (t("Config Editor"), config_editor_tab.build),
             ]),
             ("credits", t("CREDITS"), [(t("Credits"), credits_tab.build)]),
         ]

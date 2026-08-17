@@ -3,15 +3,16 @@ Credits tab (renamed from Settings) — the About block plus a full credits list
 tool, and person this app builds on top of or bundles an installer for. Nuclear Option Armory is a
 companion/wrapper app: it doesn't ship any of these projects' code, it downloads their real
 releases from their own GitHub repos (see bepinex_installer.py, blueprinter_installer.py,
-live_editor_installer.py) or shells out to their own CLI tools at build time (see build.py).
+live_editor_installer.py) or shells out to their own CLI tools at build time (see build.py). The
+"Check for Updates" flow for Armory itself lives on its own Updates sub-tab (update_tab.py), next
+to Config — see there for how that works.
 """
 from tkinter import ttk
 
 import theme
 import ui_util
+from app_version import APP_VERSION
 from i18n import t
-
-_APP_VERSION = "0.6.1"
 
 
 def build(parent, app):
@@ -23,7 +24,7 @@ def build(parent, app):
     about.pack(fill="x", padx=2, pady=(0, 12))
     ttk.Label(about, text=t("Nuclear Option Armory"), font=theme.FHEAD, foreground=theme.GOLD).pack(
         anchor="w", padx=8, pady=(8, 0))
-    ttk.Label(about, text=t("Version {v}", v=_APP_VERSION), font=theme.FB).pack(
+    ttk.Label(about, text=t("Version {v}", v=APP_VERSION), font=theme.FB).pack(
         anchor="w", padx=8, pady=(0, 4))
     ttk.Label(
         about, wraplength=560, justify="left",

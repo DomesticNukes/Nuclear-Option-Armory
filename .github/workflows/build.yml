@@ -3,6 +3,7 @@ name: Build
 on:
   push:
     branches: [main]
+    tags: ["v*"]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -35,3 +36,33 @@ jobs:
         with:
           name: Nuclear Option Armory (installer)
           path: dist_installer/Nuclear Option Armory Setup.exe
+
+  # Only runs on a version tag push (e.g. "v0.6.1") — publishes a real GitHub Release with both
+  # exe assets attached, which self_update.py's GitHub API check reads from. Plain pushes to main
+  # and PRs only get the "build" job above (Actions artifacts, for CI feedback), not a Release —
+  # a Release is a deliberate "this version is ready to offer as an update" action, not automatic
+  # on every commit.
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: Nuclear Option Armory (exe)
+          path: dist
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: Nuclear Option Armory (installer)
+          path: dist_installer
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/Nuclear Option Armory.exe
+            dist_installer/Nuclear Option Armory Setup.exe
+          generate_release_notes: true

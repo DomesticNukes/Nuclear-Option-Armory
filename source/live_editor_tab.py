@@ -151,7 +151,11 @@ class _ToolCard:
                 dest = lei.install(self.tool, release, library)
                 self.app.after(0, lambda: self._install_finished(dest, None))
             except Exception as e:
-                self.app.after(0, lambda: self._install_finished(None, e))
+                # Capture the message NOW — `e` is deleted by Python at the end of this except
+                # block, but app.after(0, ...) defers the lambda, so closing over `e` itself
+                # would raise NameError once the deferred callback actually runs.
+                message = str(e)
+                self.app.after(0, lambda: self._install_finished(None, message))
 
         threading.Thread(target=worker, daemon=True).start()
 

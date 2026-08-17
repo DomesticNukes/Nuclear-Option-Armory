@@ -1,7 +1,7 @@
 """
 BepInEx plugin metadata reading — pure logic, no Tkinter, safe to unit-test standalone.
 
-Two independent, fail-open responsibilities (never raise, never block the caller):
+Three independent, fail-open responsibilities (never raise, never block the caller):
 
 1. read_plugin_metadata(dll_path) — best-effort extraction of a DLL's [BepInPlugin(guid, name,
    version)] attribute arguments straight from its raw bytes, with no .NET/PE metadata library.
@@ -18,7 +18,21 @@ Two independent, fail-open responsibilities (never raise, never block the caller
 
    Never raises; on no match, returns an empty list, and callers should fall back to the filename.
 
-2. parse_cfg / render_cfg — BepInEx's ConfigFile INI-like format. Unlike a generic re-serializer,
+2. read_plugin_dependencies(dll_path) — same byte-scraping technique, extended to
+   [BepInDependency(guid, ...)] attribute blobs, which real plugin authors use to declare a hard or
+   soft dependency on another plugin's GUID. BepInEx's real constructor has two overloads —
+   `(string guid, DependencyFlags flags = HardDependency)` and `(string guid, string minVersion)` —
+   and since this is a raw byte scan (no real metadata-table/method-token resolution to tell them
+   apart), both shapes are tried at each candidate site. Confirmed against REAL installed plugins
+   this session, not a guess: CustomWeapons_2.0.2.dll declares a hard dependency (flags=1) on
+   com.nikkorap.blueprinter (offset 74162: ``01 00 18 "com.nikkorap.blueprinter" 01 00 00 00 00
+   00``), NuclearOptionIfritMod.dll declares a soft dependency (flags=2) on com.offiry.qol, and
+   qol_1.1.6.3b1.dll itself declares a soft dependency on com.nikkorap.blueprinter.kestrel — three
+   independent real examples, both flag values, byte-for-byte inspected before writing this parser.
+   The (guid, minVersion string) overload is supported per BepInEx's documented API but wasn't
+   found in any real DLL on this machine to verify against.
+
+3. parse_cfg / render_cfg — BepInEx's ConfigFile INI-like format. Unlike a generic re-serializer,
    this keeps each setting's full original comment block (description + "# Setting type:" +
    "# Default value:" + optional "# Acceptable values:" lines) as opaque, verbatim text and only
    ever rewrites the "Key = Value" line — so an edit changes exactly the one line the user touched,
@@ -127,6 +141,64 @@ def read_primary_plugin_metadata(dll_path) -> PluginMeta:
     if found:
         return found[0]
     return PluginMeta(guid=None, name=Path(dll_path).stem, version=None, source="filename-fallback")
+
+
+# ── BepInDependency scraper ───────────────────────────────────────────────────
+
+HARD_DEPENDENCY = 1   # BepInEx's real DependencyFlags.HardDependency value — the game won't load
+SOFT_DEPENDENCY = 2   # without it. DependencyFlags.SoftDependency — only affects load ORDER.
+
+
+@dataclass
+class DependencyRef:
+    guid: str
+    flags: Optional[int] = None          # HARD_DEPENDENCY / SOFT_DEPENDENCY — the (guid, flags) form
+    min_version: Optional[str] = None    # set instead, for the (guid, minVersion string) form
+
+
+def read_plugin_dependencies(dll_path) -> list:
+    """Scan a DLL's raw bytes for every [BepInDependency(...)] attribute blob — see this module's
+    docstring for the confirmed-real byte shape and the two constructor overloads this tries.
+    Returns a list of DependencyRef (possibly empty — most plugins declare none). Never raises."""
+    results = []
+    try:
+        data = Path(dll_path).read_bytes()
+    except Exception:
+        return results
+
+    n = len(data)
+    i = 0
+    while True:
+        idx = data.find(_PROLOG, i)
+        if idx == -1:
+            break
+        i = idx + 1
+
+        pos = idx + 2
+        r1 = _try_read_string(data, pos, n)
+        if not r1:
+            continue
+        guid, after_guid = r1
+        if not _looks_like_guid(guid):
+            continue
+
+        # Try (guid, DependencyFlags) first — an Int32 (4 bytes, NOT length-prefixed) then the
+        # NumNamed terminator — the only form actually observed in real plugins this session.
+        if after_guid + 6 <= n:
+            flags_val = int.from_bytes(data[after_guid:after_guid + 4], "little", signed=True)
+            if data[after_guid + 4:after_guid + 6] == b"\x00\x00" and flags_val in (HARD_DEPENDENCY, SOFT_DEPENDENCY):
+                results.append(DependencyRef(guid=guid, flags=flags_val))
+                continue
+
+        # Fall back to (guid, minVersion string) — documented real BepInEx API, unverified against
+        # an actual DLL on this machine, so it's tried second rather than assumed more common.
+        r2 = _try_read_string(data, after_guid, n)
+        if r2:
+            version, after_version = r2
+            if after_version + 2 <= n and data[after_version:after_version + 2] == b"\x00\x00":
+                results.append(DependencyRef(guid=guid, min_version=version))
+
+    return results
 
 
 def find_cfg_for_guid(guid: Optional[str], bepinex_config_dir) -> Optional[Path]:

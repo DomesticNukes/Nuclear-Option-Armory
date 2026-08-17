@@ -395,6 +395,73 @@ class _Tab:
             wraplength=280, padx=6, pady=3,
         ).pack(fill="x")
 
+    def _find_deployed_guid(self, guid: str):
+        """The display name of whatever's directly in BepInEx/plugins with this GUID, or None.
+        Fallback for dependency checks: Companion Tools (Blueprinter, Configuration Manager) are
+        installed straight into BepInEx/plugins from the Config tab, outside the toggleable
+        library by design (see config_tab.py) — without this, a real, satisfied dependency on one
+        of them would be wrongly flagged as missing just because it isn't a library entry."""
+        try:
+            plugins_dir = self.app.bepinex_plugins_dir()
+            if not plugins_dir.is_dir():
+                return None
+            for child in plugins_dir.iterdir():
+                try:
+                    meta = npm.read_primary_plugin_metadata(plugin_library.primary_dll(child))
+                except Exception:
+                    continue
+                if meta.guid == guid:
+                    return meta.name
+        except Exception:
+            pass
+        return None
+
+    def _dependency_status_lines(self, path: Path) -> list:
+        """[(text, is_warning)] for each [BepInDependency(...)] this plugin declares (see
+        nom_plugin_meta.read_plugin_dependencies) — whether the target GUID is present in the
+        library, and if so, whether it's actually enabled. A missing/disabled HARD dependency is
+        flagged as a warning (the game won't load without it); a missing/disabled SOFT one isn't
+        (BepInEx only uses soft deps to order loading, not to require presence). Auto-installing a
+        missing dependency needs somewhere to pull it FROM — deferred to the mod-repository feature,
+        since a bare DLL has no download source of its own."""
+        try:
+            deps = npm.read_plugin_dependencies(plugin_library.primary_dll(path))
+        except Exception:
+            deps = []
+        if not deps:
+            return []
+
+        guid_to_entry = {}
+        for var, p in self.plugin_vars:
+            guid = self._get_meta(p).guid
+            if guid:
+                guid_to_entry[guid] = (var, p)
+
+        lines = []
+        for dep in deps:
+            kind = (t("Hard") if dep.flags == npm.HARD_DEPENDENCY
+                    else t("Soft") if dep.flags == npm.SOFT_DEPENDENCY
+                    else t("Version-pinned"))
+            entry = guid_to_entry.get(dep.guid)
+            if entry is None:
+                deployed_name = self._find_deployed_guid(dep.guid)
+                if deployed_name is not None:
+                    lines.append((t("{kind} dependency OK (installed directly, not via library): {name}",
+                                    kind=kind, name=deployed_name), False))
+                    continue
+                is_hard = dep.flags != npm.SOFT_DEPENDENCY
+                lines.append((t("{kind} dependency MISSING from library: {guid}",
+                                kind=kind, guid=dep.guid), is_hard))
+                continue
+            var, dep_path = entry
+            dep_name = self._get_meta(dep_path).name
+            if var.get():
+                lines.append((t("{kind} dependency OK: {name}", kind=kind, name=dep_name), False))
+            else:
+                lines.append((t("{kind} dependency present but NOT ENABLED: {name}",
+                                kind=kind, name=dep_name), dep.flags == npm.HARD_DEPENDENCY))
+        return lines
+
     def _update_detail(self):
         self._clear_detail_rows()
         idx = self._selected_index()
@@ -416,8 +483,13 @@ class _Tab:
         ]
         if meta.source == "filename-fallback":
             lines.append(t("(couldn't read plugin info from this DLL — showing filename)"))
-        for i, line in enumerate(lines):
-            self._add_detail_row(i, line)
+        row_index = 0
+        for line in lines:
+            self._add_detail_row(row_index, line)
+            row_index += 1
+        for text, is_warning in self._dependency_status_lines(path):
+            self._add_detail_row(row_index, text, foreground=(theme.RED if is_warning else None))
+            row_index += 1
         self.edit_cfg_btn.configure(state=("normal" if cfg_path else "disabled"))
 
     # ── Actions ──────────────────────────────────────────────────────────

@@ -941,17 +941,17 @@ def _run_dialog(parent, kind, title, message, buttons, *, default_index=-1, canc
 
 def info(parent, title, message):
     """Themed replacement for ``messagebox.showinfo``.  One OK button."""
-    return _run_dialog(parent, "info", title, message, [(_t("common.ok"), True, True)])
+    return _run_dialog(parent, "info", title, message, [(_t("OK"), True, True)])
 
 
 def warning(parent, title, message):
     """Themed replacement for ``messagebox.showwarning``.  One OK button."""
-    return _run_dialog(parent, "warning", title, message, [(_t("common.ok"), True, True)])
+    return _run_dialog(parent, "warning", title, message, [(_t("OK"), True, True)])
 
 
 def error(parent, title, message):
     """Themed replacement for ``messagebox.showerror``.  One OK button."""
-    return _run_dialog(parent, "error", title, message, [(_t("common.ok"), True, True)])
+    return _run_dialog(parent, "error", title, message, [(_t("OK"), True, True)])
 
 
 def confirm(parent, title, message, *, yes=None, no=None, danger=False):
@@ -959,7 +959,7 @@ def confirm(parent, title, message, *, yes=None, no=None, danger=False):
     ``yes``/``no`` override the button labels; ``danger=True`` styles it as an error (destructive)."""
     kind = "error" if danger else "confirm"
     return _run_dialog(parent, kind, title, message,
-                       [(no or _t("ui.no"), False, False), (yes or _t("ui.yes"), True, True)],
+                       [(no or _t("No"), False, False), (yes or _t("Yes"), True, True)],
                        default_index=1, cancel_value=False)
 
 
@@ -985,4 +985,4 @@ def show_text(parent, title, message, body, *, ok_label=None, height=16, width=7
         txt.configure(state="disabled")                # read-only, but still selectable/copyable
 
     return _run_dialog(parent, "info", title, message,
-                       [(ok_label or _t("common.ok"), True, True)], build_extra=build, min_width=440)
+                       [(ok_label or _t("OK"), True, True)], build_extra=build, min_width=440)

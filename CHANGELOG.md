@@ -1,8 +1,70 @@
 # Changelog
 
 All notable changes to Nuclear Option Armory are documented here. Format loosely follows
-[Keep a Changelog](https://keepachangelog.com/); versions match the app's own `_APP_VERSION`
-constant (shown on the Credits tab).
+[Keep a Changelog](https://keepachangelog.com/); versions match the app's own `APP_VERSION`
+constant (`app_version.py`, shown on the Credits tab).
+
+## [0.7.1] - 2026-08-16
+
+### Added
+
+- **Search tab**: a mod with nothing installable here now shows its real info/Discord/etc. links
+  as clickable rows in the Details pane, so there's still a way to go get it manually.
+- **Import…** buttons on the Missions and Skins tabs — copy a mission or skin folder from
+  anywhere else on disk (e.g. one someone shared with you directly, not via Workshop subscribe)
+  into your local library, alongside Rename/Duplicate/Delete.
+- **Updates** is now its own sub-tab under CONFIG, next to Config, instead of being folded into
+  the Credits tab's About block.
+- **Plugin Config** (renamed from Config Editor) moved from CREATE to MANAGE, right next to
+  Plugins — it's day-to-day plugin management, not a build tool.
+
+### Fixed
+
+- A real, user-visible bug: `ui_util`'s confirm/info/warning/error dialogs called `t("ui.yes")`,
+  `t("ui.no")`, and `t("common.ok")` — a dotted-key style this app's own `i18n.t()` doesn't
+  actually use (every other call site passes plain English text, and `lang/us.json` is empty), so
+  those buttons literally read "ui.yes" / "ui.no" / "common.ok" instead of "Yes" / "No" / "OK" on
+  every themed dialog in the app. Now call `t("Yes")` / `t("No")` / `t("OK")` like everywhere else.
+
+## [0.7.0] - 2026-08-16
+
+Prompted by a re-evaluation of Combat787's NOMM (the mod manager Armory was originally inspired
+by) to see what real capabilities it has that Armory was still missing.
+
+### Added
+
+- **Self-updater** — the Credits tab can now check GitHub Releases for a newer Armory version and,
+  when running as the packaged exe, download and apply the update in place (a detached helper
+  script swaps the file once the app closes, then relaunches it). Requires a real GitHub Release
+  to exist — added a `release` job to the build workflow, triggered by pushing a version tag
+  (`vX.Y.Z`), that publishes one with both the portable exe and the installer attached; plain
+  commits to main still only produce Actions artifacts, not a Release.
+- **BepInEx dependency awareness** — the Plugins tab's Details pane now shows each plugin's
+  declared `[BepInDependency(...)]` requirements (a real, standard BepInEx attribute plugin authors
+  use) and flags a missing or disabled *hard* dependency as a warning; soft dependencies are shown
+  informationally only. Also checks whether a dependency is satisfied by something installed
+  directly into BepInEx/plugins (e.g. a Companion Tool like Blueprinter) even when it isn't a
+  library entry. The underlying byte-level scanner (`nom_plugin_meta.read_plugin_dependencies`)
+  was verified against real installed plugins on this machine before being trusted, not guessed
+  from the spec alone.
+- **Search tab** (under MANAGE) — browse and one-click install mods from the community NOMNOM
+  manifest, the same public catalog NOMM itself reads. Recursively installs a mod's declared
+  dependencies too (skipping ones already satisfied, either by a prior repo install or by a real
+  BepInPlugin GUID match elsewhere, e.g. Blueprinter via the Config tab), with SHA-256 hash
+  verification when the manifest provides one. Scope is deliberately narrower than NOMM's own
+  installer: only "plugin"-type `.dll`/`.zip` artifacts install automatically — Blueprinter "addon"
+  content bundles and non-zip archives (`.7z`/`.rar`) are shown but not auto-installed, since this
+  app hasn't verified where the former actually needs to land, and the stdlib can't extract the
+  latter.
+
+### Fixed
+
+- A real, pre-existing bug found while building the above: four call sites across three files
+  (`credits_tab.py`, `config_tab.py` ×2, `live_editor_tab.py`) deferred an exception object into a
+  `tkinter.after(0, ...)` callback via a closure — Python deletes an `except ... as e:` variable at
+  the end of its except block, so by the time the deferred callback ran, accessing `e` raised
+  `NameError` instead of showing the intended error dialog. All four now capture `str(e)`
+  immediately and close over that instead.
 
 ## [0.6.1] - 2026-08-16
 

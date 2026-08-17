@@ -127,7 +127,11 @@ def build(parent, app):
         try:
             bepinex_installer.install(release, Path(gr_var.get().strip()), progress_cb=_bx_progress_cb)
         except Exception as e:
-            app.after(0, lambda: _bx_install_finished(e))
+            # Capture the message NOW — `e` is deleted by Python at the end of this except block,
+            # but app.after(0, ...) defers the lambda, so closing over `e` itself would raise
+            # NameError once the deferred callback actually runs.
+            message = str(e)
+            app.after(0, lambda: _bx_install_finished(message))
             return
         app.after(0, lambda: _bx_install_finished(None))
 
@@ -365,7 +369,9 @@ def build(parent, app):
                 blueprinter_installer.install(release, _tools_plugins_dir())
                 app.after(0, _refresh_tools)
             except Exception as e:
-                app.after(0, lambda: (ui_util.error(app, t("Install Failed"), str(e)), _refresh_tools()))
+                # Capture the message NOW — see the comment on the same pattern above.
+                message = str(e)
+                app.after(0, lambda: (ui_util.error(app, t("Install Failed"), message), _refresh_tools()))
         threading.Thread(target=worker, daemon=True).start()
 
     bp_btn.configure(command=_on_bp_install_clicked)
@@ -418,7 +424,9 @@ def build(parent, app):
                 lei.install(cm_tool, release, _tools_plugins_dir())
                 app.after(0, _refresh_tools)
             except Exception as e:
-                app.after(0, lambda: (ui_util.error(app, t("Install Failed"), str(e)), _refresh_tools()))
+                # Capture the message NOW — see the comment on the same pattern above.
+                message = str(e)
+                app.after(0, lambda: (ui_util.error(app, t("Install Failed"), message), _refresh_tools()))
         threading.Thread(target=worker, daemon=True).start()
 
     cm_btn.configure(command=_on_cm_install_clicked)

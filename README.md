@@ -22,23 +22,28 @@ Grab the latest build from the [Actions tab](https://github.com/DomesticNukes/Nu
 
 ## What it does
 
-Tabs are grouped under **CONFIG** (game folder + BepInEx + Companion Tools install — gates the rest
-of the app until the first two are done), **MANAGE** (Plugins/Missions/Skins), **UNIT EDITOR**
-(live in-game stat overrides, one sub-tab per unit category plus a shared Queue & Build tab),
-**CREATE** (Mod Creator / Live Editor Suite / Config Editor), and **CREDITS** (about + full
-attribution). A persistent Launch button, top right, starts the game from anywhere in the app.
+Tabs are grouped under **CONFIG** (Config: game folder + BepInEx + Companion Tools install — gates
+the rest of the app until the first two are done; Updates: checks for a newer Armory), **MANAGE**
+(Plugins/Plugin Config/Missions/Skins/Search), **UNIT EDITOR** (live in-game stat overrides, one
+sub-tab per unit category plus a shared Queue & Build tab), **CREATE** (Mod Creator / Live Editor
+Suite), and **CREDITS** (about + full attribution). A persistent Launch button, top right, starts
+the game from anywhere in the app.
 
 ### Config tab
 
-BepInEx isn't part of Nuclear Option itself; it's the third-party mod-loading runtime every plugin
-needs, normally installed by hand. This tab detects your game folder (or finds it via Steam) and,
-if BepInEx is missing, downloads the official release and installs it in one click — MANAGE, UNIT
-EDITOR, and CREATE stay locked until it's done. Below that: your plugin library folder (also
-auto-detected), and **Companion Tools** — [nikkorap](https://github.com/nikkorap)'s Blueprinter and
-BepInEx's own Configuration Manager, installed directly into `BepInEx\plugins\` (not the toggleable
-library, since several other mods depend on Blueprinter always being present) with a per-tool
-Enable/Disable button that moves the file out to a holding folder without uninstalling it, in case
-either ever conflicts with something else you're running.
+**Config** — BepInEx isn't part of Nuclear Option itself; it's the third-party mod-loading runtime
+every plugin needs, normally installed by hand. This tab detects your game folder (or finds it via
+Steam) and, if BepInEx is missing, downloads the official release and installs it in one click —
+MANAGE, UNIT EDITOR, and CREATE stay locked until it's done. Below that: your plugin library folder
+(also auto-detected), and **Companion Tools** — [nikkorap](https://github.com/nikkorap)'s
+Blueprinter and BepInEx's own Configuration Manager, installed directly into `BepInEx\plugins\`
+(not the toggleable library, since several other mods depend on Blueprinter always being present)
+with a per-tool Enable/Disable button that moves the file out to a holding folder without
+uninstalling it, in case either ever conflicts with something else you're running.
+
+**Updates** — checks GitHub Releases for a newer Armory than the one you're running; when running
+the packaged exe, can download and apply the update in place (see
+[Design notes](#design-notes)). Manual only, no automatic check on startup.
 
 ### Manage tab
 
@@ -49,24 +54,45 @@ It reads each plugin's name/GUID/version straight out of the compiled DLL — no
 first — and can edit a plugin's `.cfg` settings file in a themed form. A plugin already sitting in
 `BepInEx\plugins\` from before you started using Armory (dropped in by hand, or by another manager)
 gets automatically adopted into your library the next time you open this tab, instead of staying
-invisible. You can also export your currently-enabled set as a shareable `.armorypack` and import
-one someone else sent you. Unlike a typical "mod manager," there's no backup/restore: BepInEx
-plugins are standalone files, not a patch over the game's own data, so there's nothing to restore.
+invisible. If a plugin declares a `[BepInDependency(...)]` on another plugin's GUID, the Details
+pane shows whether that dependency is actually present and enabled, warning when a *hard*
+dependency is missing (checked against your library AND anything installed directly into
+BepInEx/plugins, like a Companion Tool). You can also export your currently-enabled set as a
+shareable `.armorypack` and import one someone else sent you. Unlike a typical "mod manager,"
+there's no backup/restore: BepInEx plugins are standalone files, not a patch over the game's own
+data, so there's nothing to restore.
+
+**Plugin Config** — a standalone, browse-everything panel for every deployed plugin's `.cfg`, built
+on the same form renderer as the Plugins tab's one-at-a-time "Edit Config…" popup but scanning
+`BepInEx\config` directly, so it picks up every plugin that's ever written a config — including
+ones installed outside Armory entirely.
 
 **Missions** — organizes missions saved by the in-game mission editor
 (`%USERPROFILE%\AppData\LocalLow\Shockfront\NuclearOption\Missions\`): rename, duplicate, delete
-(moved to a `.deleted` holding folder, not permanently removed), reveal in Explorer. It also lists
-missions you've **subscribed to on the Steam Workshop**, tagged distinctly from your own — since
-those live in Steam's own cache, Rename/Delete are blocked on them (Steam manages that folder and
-would just undo the change) but Duplicate makes you an editable local copy under the mission's real
-title. It does not edit mission content.
+(moved to a `.deleted` holding folder, not permanently removed), reveal in Explorer, or import a
+mission folder from anywhere else on disk (e.g. one someone shared with you directly). It also
+lists missions you've **subscribed to on the Steam Workshop**, tagged distinctly from your own —
+since those live in Steam's own cache, Rename/Delete are blocked on them (Steam manages that folder
+and would just undo the change) but Duplicate makes you an editable local copy under the mission's
+real title. It does not edit mission content.
 
 **Skins** — organizes aircraft livery folders the same way: your own locally-built ones alongside
-Workshop-subscribed liveries, tagged by source. Building the actual Unity asset bundle a skin needs
-isn't something this app can do (that requires Unity + Nuclear Option's own mod-project tooling) —
-this tab organizes folders and edits a *local* skin's `meta.json` fields (DisplayName/Faction/
-Aircraft); editing is intentionally not offered for subscribed skins, since unlike a mission's plain
-JSON, a compiled AssetBundle likely bakes its catalog IDs to that exact folder.
+Workshop-subscribed liveries, tagged by source, with the same folder-import option as Missions.
+Building the actual Unity asset bundle a skin needs isn't something this app can do (that requires
+Unity + Nuclear Option's own mod-project tooling) — this tab organizes folders and edits a *local*
+skin's `meta.json` fields (DisplayName/Faction/Aircraft); editing is intentionally not offered for
+subscribed skins, since unlike a mission's plain JSON, a compiled AssetBundle likely bakes its
+catalog IDs to that exact folder.
+
+**Search** — browse and one-click install mods from [NOMNOM](https://github.com/KopterBuzz/NOMNOM),
+the same public community mod catalog [Combat787](https://github.com/Combat787)'s NOMM reads.
+Installing a mod recursively installs its declared dependencies too (skipped if already satisfied —
+either a prior Search install, or a real BepInPlugin GUID match elsewhere, like Blueprinter via the
+Config tab), with SHA-256 hash verification when the manifest provides one. Only `.dll`/`.zip`
+"plugin"-type artifacts install automatically here — Blueprinter "addon" content bundles and
+non-zip archives (`.7z`/`.rar`) are shown (so search stays useful for everything in the manifest)
+but not auto-installed, since this app hasn't verified where the former needs to land and the
+stdlib can't extract the latter. Installed mods show up in the Plugins tab automatically.
 
 ### Unit Editor tab
 
@@ -120,15 +146,11 @@ RuntimeUnityEditor (a live scene/object inspector + REPL console) and BepInEx's 
 Manager. Armory can't become that overlay — it's an external desktop app — but it removes every
 manual step around getting them onto your machine.
 
-**Config Editor** — a standalone, browse-everything panel for every deployed plugin's `.cfg`,
-built on the same form renderer as the Plugins tab's one-at-a-time "Edit Config…" popup but scanning
-`BepInEx\config` directly, so it picks up every plugin that's ever written a config — including ones
-installed outside Armory entirely.
-
 ### Credits tab
 
-App version and a full attribution list for every project this app is built on top of or bundles an
-installer for — see [Special thanks](#special-thanks) below for the same list.
+App version and a full attribution list for every project this app is built on top of or bundles
+an installer for — see
+[Special thanks](#special-thanks) below for the same list.
 
 ## Running from source
 
@@ -168,6 +190,14 @@ is also installed (`winget install JRSoftware.InnoSetup`), it additionally build
 - A subscribed Steam Workshop mission or skin is told apart from a plain mod purely by each item's
   own `workshop.json` `TypeHint` field ("Mission" vs. "AircraftLivery") — the real, authoritative
   value Nuclear Option itself writes, not a guess based on file layout.
+- The `[BepInDependency(...)]` scanner uses the same raw-byte technique as the `[BepInPlugin(...)]`
+  reader, extended to both of BepInEx's real constructor overloads — verified against actual
+  installed plugins on the maintainer's machine (a real hard dependency on Blueprinter, a real soft
+  dependency between two other mods) before being trusted, not derived from the spec alone.
+- Self-update replaces the running exe by spawning a detached helper script that waits for the file
+  to unlock, copies the new build over it, and relaunches — Windows won't allow overwriting an
+  exe's file while it's still executing, so the app closing is what releases the lock the helper is
+  waiting on.
 
 ## Special thanks
 

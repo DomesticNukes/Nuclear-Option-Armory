@@ -15,9 +15,10 @@ Empty-state-first: no custom or subscribed skins exist on a fresh install.
 """
 import json
 import os
+import shutil
 import tkinter as tk
 from pathlib import Path
-from tkinter import ttk
+from tkinter import filedialog, ttk
 
 import nom_steam
 import theme
@@ -43,6 +44,17 @@ def _read_json(path):
 def _write_json(path, obj):
     with open(path, "w", encoding="utf-8") as f:
         json.dump(obj, f, indent=4)
+
+
+def _unique_path(base: Path) -> Path:
+    if not base.exists():
+        return base
+    n = 2
+    while True:
+        candidate = base.with_name(f"{base.name} ({n})")
+        if not candidate.exists():
+            return candidate
+        n += 1
 
 
 def _display_name(folder, meta=None) -> str:
@@ -86,6 +98,12 @@ class _Tab:
     def _build_widgets(self, parent):
         actions = ttk.Frame(parent)
         actions.pack(side=tk.BOTTOM, fill="x", padx=6, pady=4)
+        import_btn = ttk.Button(actions, text=t("Import…"), command=self.import_skin)
+        import_btn.pack(side=tk.LEFT, padx=2)
+        ui_util.tooltip(import_btn, t(
+            "Copies a skin folder from somewhere else on disk (e.g. one someone shared with you) "
+            "into your local Skins folder."))
+        ttk.Separator(actions, orient="vertical").pack(side=tk.LEFT, fill="y", padx=6)
         ttk.Button(actions, text=t("Reveal in Explorer"), command=self.reveal).pack(side=tk.LEFT, padx=2)
         ttk.Button(actions, text=t("Refresh"), command=self.refresh).pack(side=tk.LEFT, padx=2)
 
@@ -238,6 +256,34 @@ class _Tab:
             os.startfile(target)
         except Exception as e:
             ui_util.error(self.app, t("Couldn't Open Folder"), str(e))
+
+    def import_skin(self):
+        """Copies a skin folder from anywhere else on disk into the local Skins folder — for one
+        someone shared with you directly (not via Workshop subscribe, which the tab already picks
+        up on its own). This app can't verify a copied AssetBundle's catalog IDs still resolve
+        correctly (see module docstring), so this is offered as-is, same as any other file copy —
+        it's what you'd do by hand in Explorer anyway."""
+        chosen = filedialog.askdirectory(title=t("Select a skin folder to import"))
+        if not chosen:
+            return
+        src = Path(chosen)
+        try:
+            if not any(src.iterdir()):
+                ui_util.warning(self.app, t("Empty Folder"),
+                                 t("\"{name}\" is empty — nothing to import.", name=src.name))
+                return
+        except OSError as e:
+            ui_util.error(self.app, t("Import Failed"), str(e))
+            return
+        skins_dir = self.app.skins_dir()
+        dest = _unique_path(skins_dir / src.name)
+        try:
+            skins_dir.mkdir(parents=True, exist_ok=True)
+            shutil.copytree(src, dest)
+        except Exception as e:
+            ui_util.error(self.app, t("Import Failed"), str(e))
+            return
+        self.refresh()
 
 
 def build(parent, app):
