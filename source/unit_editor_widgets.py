@@ -28,16 +28,25 @@ def _display_const(field: usc.StatField, value) -> str:
 
 class FieldRow:
     """One StatField's row: an override checkbox + the value widget(s), plus a small info label
-    showing a "default" for the field even when the game's own source never declared one:
+    showing a "default" for the field even when the game's own source never declared one. Checked
+    in order, most specific/trustworthy first:
 
-      1. field.default_value — a real C# initializer (e.g. `= 9f`), when one exists. Gold text.
-      2. baseline_raw — for fields with NO declared default, the first LIVE value this app ever
-         saw for this exact unit/weapon+field, captured once from the companion plugin's dump and
-         kept forever after (see UnitEditorState.baseline) — i.e. the actual original value the
-         game ships with, not a guess. HUD-green text, since it's a fact about the running game,
-         not the source code. A small reset button clears it (e.g. if it was captured while an
+      1. baseline_raw — the first LIVE value this app ever saw for this exact unit/weapon+field,
+         captured once from the companion plugin's dump and kept forever after (see
+         UnitEditorState.baseline) — i.e. the actual original value the game ships with, not a
+         guess. HUD-green text. A small reset button clears it (e.g. if it was captured while an
          override was already active) so the next live reading becomes the new baseline.
-      3. "(unknown — build, deploy, and run once)" — neither is available yet.
+      2. reference_raw — this SPECIFIC unit's real value, sourced from an external reference
+         dataset (currently unit_stat_catalog.wiki_reference(), compiled from the community wiki —
+         see data/aircraft_wiki_reference.json's own "_provenance" note) rather than captured
+         directly. Set via set_reference_default(). Shown identically to any other default (gold,
+         "default N") since it IS the real per-unit value, just not yet independently captured —
+         more specific and more useful than #3, which only ever describes one generic number
+         shared by every unit in the category.
+      3. field.default_value — a real C# initializer (e.g. `= 9f`), when one exists — the SAME
+         placeholder value for every unit in the category, not this unit's actual number. Gold
+         text, same as #2; only reached when neither #1 nor #2 is available for this unit.
+      4. "(unknown — build, deploy, and run once)" — nothing at all is available yet.
 
     current_raw (separate, dim text) is the LATEST dump reading, which may differ from the
     baseline if an override is already active — baseline never changes once captured (until
@@ -58,6 +67,8 @@ class FieldRow:
         self.override_var = tk.BooleanVar(value=False)
         self.current_raw = None      # str | None — the live value from the last dump, if any
         self.baseline_raw = None     # str | None — the first-ever-seen live value, kept forever
+        self.reference_raw = None    # str | None — this unit's real value from an external
+                                      # reference dataset (e.g. the wiki), set via set_reference_default()
         self._user_touched = False   # True once the user edits the value themselves
 
         # RUSE-style zebra striping (ui_util.row_bg/apply_row_bg) so a wide row's checkbox, label,
@@ -199,7 +210,7 @@ class FieldRow:
         slider's arbitrary floor."""
         if self.field.field_type not in ("float", "int", "bool"):
             return
-        raw = self.current_raw or self.baseline_raw
+        raw = self.current_raw or self.baseline_raw or self.reference_raw
         if raw is None and self.field.default_value is not None:
             raw = _display_const(self.field, self.field.default_value)
         if raw is None:
@@ -214,6 +225,14 @@ class FieldRow:
                     self.entry_var.set(self._format(v))
         except (ValueError, TypeError):
             pass
+
+    def set_reference_default(self, raw_value):
+        """`raw_value` is a pre-formatted string (e.g. "9" or "3.5") for this SPECIFIC unit, from
+        an external reference dataset (unit_stat_catalog.wiki_reference()) — never a bare guess.
+        Displayed and seeded exactly like any other default (see _refresh_info/_seed_from_best_known);
+        a real captured live value (baseline_raw) still always wins over it."""
+        self.reference_raw = raw_value
+        self._refresh_info()
 
     def set_current(self, raw_value, baseline_value=None):
         """Called by the owning tab after reading a fresh dump — `raw_value` is the plugin's own
@@ -235,15 +254,21 @@ class FieldRow:
         self._refresh_info()
 
     def _refresh_info(self):
-        if self.field.default_value is not None:
-            # A real fact straight from the game's own source code.
-            self.default_var.set(t("default {v}", v=_display_const(self.field, self.field.default_value)))
-            self.default_lbl.configure(foreground=theme.GOLD, font=theme.FB)
-        elif self.baseline_raw is not None:
-            # No declared default, but the ORIGINAL live value has been captured at least once —
-            # shown in HUD green since it's a fact about the running game, not the source code.
+        if self.baseline_raw is not None:
+            # The ORIGINAL live value has been captured at least once for THIS unit — shown in
+            # HUD green since it's a fact about the running game, not the source code.
             self.default_var.set(t("default {v}", v=self.baseline_raw))
             self.default_lbl.configure(foreground=theme.HUD, font=theme.FB)
+        elif self.reference_raw is not None:
+            # Not independently captured yet, but a reference dataset (see set_reference_default's
+            # docstring) documents THIS unit's real value — shown exactly like any other default,
+            # since it's the actual per-unit number, not a placeholder.
+            self.default_var.set(t("default {v}", v=self.reference_raw))
+            self.default_lbl.configure(foreground=theme.GOLD, font=theme.FB)
+        elif self.field.default_value is not None:
+            # Only a generic, same-for-every-unit source-code constant is known.
+            self.default_var.set(t("default {v}", v=_display_const(self.field, self.field.default_value)))
+            self.default_lbl.configure(foreground=theme.GOLD, font=theme.FB)
         else:
             # Explicit rather than blank — a blank cell reads as "this is broken/missing," when
             # really this app just hasn't captured a live value for this field+unit/weapon yet.

@@ -14,11 +14,12 @@ would likely just get silently overwritten).
 
 Field values are applied to the LIVE running game via a companion BepInEx plugin
 (unit_editor_engine.py) using reflection, matched by UnitDefinition.jsonKey / AircraftParameters
-.aircraftName — NOT by editing the game's compiled .assets files, which this app verified (a real
-UnityPy test, 2026-08-15) it cannot currently deserialize: Unity strips per-class TypeTrees from
-release builds, and every stat-touching BepInEx mod already found installed on this machine
-(Munitions Manager, AI Aircraft Limit, Gravity Modifier) uses this same runtime-reflection
-technique rather than file editing.
+.aircraftName. As of 2026-08-17 there is a SECOND path too (unit_asset_layout.py): direct, no-plugin
+-needed, no-game-running-required patching of the game's compiled resources.assets file, for the 5
+UnitDefinition subclasses only (not AircraftParameters — its own scalar fields sit behind array
+element types this app hasn't reflected yet, see that module's docstring). Field TYPES here
+(float/int/bool/string) apply to either path identically; which path a given queued override
+actually goes through is a Queue & Build tab choice, not something this catalog needs to know.
 
 min_value/max_value/step below are UI conveniences (slider ranges), NOT limits the game itself
 enforces — this app has not verified the game's own safe operating ranges for these fields, so an
@@ -182,6 +183,27 @@ def seed_unit_keys() -> dict:
         except Exception:
             _seed_cache = {name: [] for name in CATEGORIES}
     return _seed_cache
+
+
+_wiki_reference_cache: Optional[dict] = None
+
+
+def wiki_reference(category: str, key: str) -> Optional[dict]:
+    """Community-wiki reference stats for one specific unit (currently Aircraft only — see
+    data/aircraft_wiki_reference.json's own "_provenance" note), keyed by jsonKey. This is
+    EXTERNAL, unverified-against-the-binary data — the caller must always label it distinctly
+    (e.g. "wiki: ...") and never treat it as equivalent to a real captured live value or a
+    declared C# default. None if this category has no wiki file, or this key isn't in it."""
+    global _wiki_reference_cache
+    if _wiki_reference_cache is None:
+        _wiki_reference_cache = {}
+        try:
+            path = _seed_data_dir() / "aircraft_wiki_reference.json"
+            raw = json.loads(path.read_text(encoding="utf-8"))
+            _wiki_reference_cache["Aircraft"] = {k: v for k, v in raw.items() if not k.startswith("_")}
+        except Exception:
+            pass
+    return _wiki_reference_cache.get(category, {}).get(key)
 
 
 def known_unit_keys(missions_dir: Path) -> dict:

@@ -14,7 +14,9 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
+from typing import Optional
 
+import unit_asset_layout as ual
 import unit_editor_engine as uee
 
 
@@ -172,6 +174,56 @@ class UnitEditorState:
                    for e in self.queue]
         uee.write_overrides_json(self.override_folder() / uee.OVERRIDES_FILENAME, entries)
         return len(entries)
+
+    # ── Direct-to-file writing (alternative to the companion plugin, see unit_asset_layout.py) ──
+
+    def known_keys_from_game_files(self, definition_class: str) -> list:
+        """Real jsonKeys for `definition_class` read straight off the player's own installed
+        resources.assets (see unit_asset_layout.scan_all_units) — the FULL current roster for
+        this game version, always, unlike the bundled seed list which is a fixed snapshot that goes
+        stale the moment the game ships new units/weapons. Cached per app session (a fast ~1-2s scan,
+        but no reason to repeat it on every keystroke); call refresh_game_file_units() to force a
+        re-scan after a game update. Returns [] (never raises) if no game folder is set, the file
+        can't be found, or scanning fails for any reason — this is a bonus source, not required."""
+        return sorted(self._game_file_units().get(definition_class, {}).keys())
+
+    def game_file_unit_name(self, definition_class: str, key: str) -> Optional[str]:
+        """The real UnitDefinition.unitName for `key`, read straight off disk — no plugin build/
+        deploy/run needed, since it's a plain string field like anything else scan_all_units reads.
+        None if unknown or blank, so callers can fall back to another source rather than display an
+        empty string."""
+        name = self._game_file_units().get(definition_class, {}).get(key)
+        return name if name else None
+
+    def _game_file_units(self) -> dict:
+        cache = getattr(self, "_game_file_units_cache", None)
+        if cache is None:
+            cache = self.refresh_game_file_units()
+        return cache
+
+    def refresh_game_file_units(self) -> dict:
+        try:
+            assets_path = ual.resources_assets_path(self.app._settings.get("game_root", ""))
+            cache = ual.scan_all_units(assets_path) if assets_path.is_file() else {}
+        except Exception:
+            cache = {}
+        self._game_file_units_cache = cache
+        return cache
+
+    def direct_writable_count(self) -> int:
+        """How many queued entries COULD go through apply_direct_to_game_files — used to grey out
+        that action when nothing queued qualifies (e.g. only AircraftParameters fields queued)."""
+        return sum(1 for e in self.queue if e.get("type") in ual.DIRECT_WRITE_TYPES)
+
+    def apply_direct_to_game_files(self) -> list:
+        """Writes every direct-writable queued override straight into the real resources.assets,
+        no companion plugin or running game needed. Raises AssetLayoutError up front if the game is
+        currently running or the file can't be found; otherwise returns one ual.ApplyOutcome per
+        queue entry (including the non-direct-writable ones, reported as "skipped") so the caller
+        can show a full per-entry report rather than just a count."""
+        game_root = self.app._settings.get("game_root", "")
+        backups_dir = self.app.state_path("unit_editor_asset_backups")
+        return ual.apply_queue_entries_to_game_files(game_root, self.queue, backups_dir)
 
     def is_plugin_built(self) -> bool:
         return (self.override_folder() / f"{uee.PLUGIN_ID}.dll").is_file()

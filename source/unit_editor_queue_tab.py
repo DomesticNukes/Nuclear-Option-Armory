@@ -79,6 +79,17 @@ class _Tab:
             "so you can share it or keep tweaking the queue without affecting what you already "
             "exported."))
 
+        direct_row = ttk.Frame(bottom)
+        direct_row.pack(fill="x", pady=(4, 0))
+        self.direct_write_btn = ttk.Button(direct_row, text=t("Write Directly to Game Files…"),
+                                            command=self._on_direct_write_clicked)
+        self.direct_write_btn.pack(side=tk.LEFT)
+        ui_util.tooltip(self.direct_write_btn, t(
+            "Alternative to the companion plugin: patches Aircraft/Vehicle/Ship/Building/Missile "
+            "Definition fields straight into resources.assets, permanently — no plugin, no running "
+            "game needed. Originals are backed up first. AircraftParameters fields (max speed, "
+            "turning radius, etc.) aren't supported by this path yet — use the plugin for those."))
+
         self.status_var = tk.StringVar(value="")
         ttk.Label(bottom, textvariable=self.status_var, foreground=theme.DIM, wraplength=780).pack(
             anchor="w", pady=(0, 4))
@@ -187,6 +198,69 @@ class _Tab:
         self.status_var.set(t(
             "Built and added to your plugin library as \"{id}\". Go to the Plugins tab, enable it, "
             "and click Apply (Deploy).", id=uee.PLUGIN_ID))
+
+    # ── Direct-to-file writing ───────────────────────────────────────────
+
+    def _on_direct_write_clicked(self):
+        if not self.state.queue:
+            ui_util.warning(self.app, t("Nothing Queued"), t("Queue at least one override first."))
+            return
+        n = self.state.direct_writable_count()
+        if n == 0:
+            ui_util.warning(self.app, t("Nothing Direct-Writable"), t(
+                "None of the queued overrides are on a supported class (Aircraft/Vehicle/Ship/"
+                "Building/Missile Definition). AircraftParameters fields need the companion "
+                "plugin path instead."))
+            return
+        game_root = self.app._settings.get("game_root", "")
+        if not game_root:
+            ui_util.warning(self.app, t("No Game Folder Set"),
+                             t("Set the game folder in Settings first."))
+            return
+        if not ui_util.confirm(
+            self.app, t("Write Directly to Game Files?"),
+            t("This permanently patches {n} queued value(s) into your real resources.assets file "
+              "— no companion plugin, no running game needed. The original bytes for every unit "
+              "touched are backed up first, but this still isn't as easily undone as removing a "
+              "plugin. Nuclear Option must be closed. Continue?", n=n),
+            danger=True,
+        ):
+            return
+
+        self.direct_write_btn.configure(state="disabled", text=t("Writing…"))
+        self.status_var.set(t("Writing directly to resources.assets…"))
+
+        def worker():
+            try:
+                outcomes = self.state.apply_direct_to_game_files()
+                error = None
+            except Exception as e:
+                outcomes = None
+                error = e
+            self.app.after(0, lambda: self._on_direct_write_finished(outcomes, error))
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _on_direct_write_finished(self, outcomes, error):
+        self.direct_write_btn.configure(state="normal", text=t("Write Directly to Game Files…"))
+        if error is not None:
+            self.status_var.set(t("Direct write failed."))
+            ui_util.error(self.app, t("Direct Write Failed"), str(error))
+            return
+
+        applied = [o for o in outcomes if o.status == "applied"]
+        skipped = [o for o in outcomes if o.status == "skipped"]
+        errored = [o for o in outcomes if o.status == "error"]
+
+        lines = []
+        for o in outcomes:
+            label = o.entry.get("label", f"{o.entry.get('type')}.{o.entry.get('field')}")
+            lines.append(f"[{o.status.upper()}] {label} — {o.message}")
+        self._log("\n".join(lines) if lines else t("(nothing to report)"))
+
+        self.status_var.set(t(
+            "Applied {a}, skipped {s}, {e} error(s). Backups saved under Config → app data folder.",
+            a=len(applied), s=len(skipped), e=len(errored)))
 
     def _log(self, text):
         self.log_text.configure(state="normal")

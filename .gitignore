@@ -5,6 +5,8 @@ source/plugin_library_state.json
 source/unit_editor_queue.json
 source/unit_editor_baseline.json
 source/unit_editor_build/
+source/controller_mapper_build/
+source/controller_mapper_backups/
 source/mod_creator_projects/
 source/tools/
 build/

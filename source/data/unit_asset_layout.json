@@ -1,0 +1,688 @@
+﻿{
+    "TypeIdentity":  {
+                         "base":  null,
+                         "fields":  [
+                                        {
+                                            "name":  "surface",
+                                            "kind":  "float",
+                                            "size":  4
+                                        },
+                                        {
+                                            "name":  "air",
+                                            "kind":  "float",
+                                            "size":  4
+                                        },
+                                        {
+                                            "name":  "missile",
+                                            "kind":  "float",
+                                            "size":  4
+                                        },
+                                        {
+                                            "name":  "radar",
+                                            "kind":  "float",
+                                            "size":  4
+                                        },
+                                        {
+                                            "name":  "strategic",
+                                            "kind":  "float",
+                                            "size":  4
+                                        }
+                                    ]
+                     },
+    "RoleIdentity":  {
+                         "base":  null,
+                         "fields":  [
+                                        {
+                                            "name":  "antiSurface",
+                                            "kind":  "float",
+                                            "size":  4
+                                        },
+                                        {
+                                            "name":  "antiAir",
+                                            "kind":  "float",
+                                            "size":  4
+                                        },
+                                        {
+                                            "name":  "antiMissile",
+                                            "kind":  "float",
+                                            "size":  4
+                                        },
+                                        {
+                                            "name":  "antiRadar",
+                                            "kind":  "float",
+                                            "size":  4
+                                        }
+                                    ]
+                     },
+    "UnitDefinition":  {
+                           "base":  null,
+                           "fields":  [
+                                          {
+                                              "name":  "typeIdentity",
+                                              "kind":  "class",
+                                              "target":  "TypeIdentity"
+                                          },
+                                          {
+                                              "name":  "roleIdentity",
+                                              "kind":  "class",
+                                              "target":  "RoleIdentity"
+                                          },
+                                          {
+                                              "name":  "jsonKey",
+                                              "kind":  "string"
+                                          },
+                                          {
+                                              "name":  "unitName",
+                                              "kind":  "string"
+                                          },
+                                          {
+                                              "name":  "bogeyName",
+                                              "kind":  "string"
+                                          },
+                                          {
+                                              "name":  "description",
+                                              "kind":  "string"
+                                          },
+                                          {
+                                              "name":  "code",
+                                              "kind":  "string"
+                                          },
+                                          {
+                                              "name":  "visibleRange",
+                                              "kind":  "float",
+                                              "size":  4
+                                          },
+                                          {
+                                              "name":  "iconRange",
+                                              "kind":  "float",
+                                              "size":  4
+                                          },
+                                          {
+                                              "name":  "radarSize",
+                                              "kind":  "float",
+                                              "size":  4
+                                          },
+                                          {
+                                              "name":  "friendlyIcon",
+                                              "kind":  "pptr",
+                                              "target":  "Sprite"
+                                          },
+                                          {
+                                              "name":  "hostileIcon",
+                                              "kind":  "pptr",
+                                              "target":  "Sprite"
+                                          },
+                                          {
+                                              "name":  "mapIcon",
+                                              "kind":  "pptr",
+                                              "target":  "Sprite"
+                                          },
+                                          {
+                                              "name":  "mapOrient",
+                                              "kind":  "bool",
+                                              "size":  1
+                                          },
+                                          {
+                                              "name":  "IsObstacle",
+                                              "kind":  "bool",
+                                              "size":  1
+                                          },
+                                          {
+                                              "name":  "iconSize",
+                                              "kind":  "float",
+                                              "size":  4
+                                          },
+                                          {
+                                              "name":  "mapIconSize",
+                                              "kind":  "float",
+                                              "size":  4
+                                          },
+                                          {
+                                              "name":  "captureCapacity",
+                                              "kind":  "int",
+                                              "size":  4
+                                          },
+                                          {
+                                              "name":  "captureStrength",
+                                              "kind":  "float",
+                                              "size":  4
+                                          },
+                                          {
+                                              "name":  "captureDefense",
+                                              "kind":  "float",
+                                              "size":  4
+                                          },
+                                          {
+                                              "name":  "length",
+                                              "kind":  "float",
+                                              "size":  4
+                                          },
+                                          {
+                                              "name":  "width",
+                                              "kind":  "float",
+                                              "size":  4
+                                          },
+                                          {
+                                              "name":  "height",
+                                              "kind":  "float",
+                                              "size":  4
+                                          },
+                                          {
+                                              "name":  "value",
+                                              "kind":  "float",
+                                              "size":  4
+                                          },
+                                          {
+                                              "name":  "mass",
+                                              "kind":  "float",
+                                              "size":  4
+                                          },
+                                          {
+                                              "name":  "manpower",
+                                              "kind":  "float",
+                                              "size":  4
+                                          },
+                                          {
+                                              "name":  "armorTier",
+                                              "kind":  "float",
+                                              "size":  4
+                                          },
+                                          {
+                                              "name":  "damageTolerance",
+                                              "kind":  "float",
+                                              "size":  4
+                                          },
+                                          {
+                                              "name":  "CanSlingLoad",
+                                              "kind":  "bool",
+                                              "size":  1
+                                          },
+                                          {
+                                              "name":  "unitPrefab",
+                                              "kind":  "pptr",
+                                              "target":  "GameObject"
+                                          },
+                                          {
+                                              "name":  "spawnOffset",
+                                              "kind":  "class",
+                                              "target":  "UnityEngine.Vector3"
+                                          },
+                                          {
+                                              "name":  "disabled",
+                                              "kind":  "bool",
+                                              "size":  1
+                                          },
+                                          {
+                                              "name":  "isEventContent",
+                                              "kind":  "bool",
+                                              "size":  1
+                                          },
+                                          {
+                                              "name":  "dontAutomaticallyAddToEncyclopedia",
+                                              "kind":  "bool",
+                                              "size":  1
+                                          },
+                                          {
+                                              "name":  "minEditorHeight",
+                                              "kind":  "float",
+                                              "size":  4
+                                          },
+                                          {
+                                              "name":  "maxEditorHeight",
+                                              "kind":  "float",
+                                              "size":  4
+                                          }
+                                      ]
+                       },
+    "AircraftInfo":  {
+                         "base":  null,
+                         "fields":  [
+                                        {
+                                            "name":  "emptyWeight",
+                                            "kind":  "float",
+                                            "size":  4
+                                        },
+                                        {
+                                            "name":  "maxSpeed",
+                                            "kind":  "float",
+                                            "size":  4
+                                        },
+                                        {
+                                            "name":  "stallSpeed",
+                                            "kind":  "float",
+                                            "size":  4
+                                        },
+                                        {
+                                            "name":  "maneuverability",
+                                            "kind":  "float",
+                                            "size":  4
+                                        },
+                                        {
+                                            "name":  "maxWeight",
+                                            "kind":  "float",
+                                            "size":  4
+                                        }
+                                    ]
+                     },
+    "AircraftDefinition":  {
+                               "base":  "UnitDefinition",
+                               "fields":  [
+                                              {
+                                                  "name":  "aircraftParameters",
+                                                  "kind":  "pptr",
+                                                  "target":  "AircraftParameters"
+                                              },
+                                              {
+                                                  "name":  "aircraftInfo",
+                                                  "kind":  "class",
+                                                  "target":  "AircraftInfo"
+                                              },
+                                              {
+                                                  "name":  "restRotation",
+                                                  "kind":  "class",
+                                                  "target":  "UnityEngine.Vector3"
+                                              }
+                                          ]
+                           },
+    "Airfoil":  {
+                    "base":  null,
+                    "fields":  [
+                                   {
+                                       "name":  "name",
+                                       "kind":  "string"
+                                   },
+                                   {
+                                       "name":  "id",
+                                       "kind":  "int",
+                                       "size":  4
+                                   },
+                                   {
+                                       "name":  "liftCoef",
+                                       "kind":  "class",
+                                       "target":  "UnityEngine.AnimationCurve"
+                                   },
+                                   {
+                                       "name":  "dragCoef",
+                                       "kind":  "class",
+                                       "target":  "UnityEngine.AnimationCurve"
+                                   }
+                               ]
+                },
+    "NuclearOption.SavedMission.Loadout":  {
+                                               "base":  null,
+                                               "fields":  [
+                                                              {
+                                                                  "name":  "weapons",
+                                                                  "kind":  "array",
+                                                                  "target":  "WeaponMount",
+                                                                  "elemIsPptr":  true
+                                                              }
+                                                          ]
+                                           },
+    "StandardLoadout":  {
+                            "base":  null,
+                            "fields":  [
+                                           {
+                                               "name":  "disabled",
+                                               "kind":  "bool",
+                                               "size":  1
+                                           },
+                                           {
+                                               "name":  "Name",
+                                               "kind":  "string"
+                                           },
+                                           {
+                                               "name":  "loadout",
+                                               "kind":  "class",
+                                               "target":  "NuclearOption.SavedMission.Loadout"
+                                           },
+                                           {
+                                               "name":  "FuelRatio",
+                                               "kind":  "float",
+                                               "size":  4
+                                           }
+                                       ]
+                        },
+    "UnityEngine.AddressableAssets.AssetReference":  {
+                                                         "base":  null,
+                                                         "fields":  [
+                                                                        {
+                                                                            "name":  "m_AssetGUID",
+                                                                            "kind":  "string"
+                                                                        },
+                                                                        {
+                                                                            "name":  "m_SubObjectName",
+                                                                            "kind":  "string"
+                                                                        },
+                                                                        {
+                                                                            "name":  "m_SubObjectType",
+                                                                            "kind":  "string"
+                                                                        },
+                                                                        {
+                                                                            "name":  "m_Operation",
+                                                                            "kind":  "class",
+                                                                            "target":  "UnityEngine.ResourceManagement.AsyncOperations.AsyncOperationHandle"
+                                                                        }
+                                                                    ]
+                                                     },
+    "UnityEngine.AddressableAssets.AssetReferenceT`1[[LiveryData, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null]]":  {
+                                                                                                                                                  "base":  "UnityEngine.AddressableAssets.AssetReference",
+                                                                                                                                                  "fields":  [
+
+                                                                                                                                                             ]
+                                                                                                                                              },
+    "AssetReferenceLiveryData":  {
+                                     "base":  "UnityEngine.AddressableAssets.AssetReferenceT`1[[LiveryData, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+                                     "fields":  [
+
+                                                ]
+                                 },
+    "AircraftParameters+Livery":  {
+                                      "base":  null,
+                                      "fields":  [
+                                                     {
+                                                         "name":  "name",
+                                                         "kind":  "string"
+                                                     },
+                                                     {
+                                                         "name":  "faction",
+                                                         "kind":  "pptr",
+                                                         "target":  "Faction"
+                                                     },
+                                                     {
+                                                         "name":  "assetReference",
+                                                         "kind":  "class",
+                                                         "target":  "AssetReferenceLiveryData"
+                                                     }
+                                                 ]
+                                  },
+    "AircraftParameters+OnboardAoAEffects":  {
+                                                 "base":  null,
+                                                 "fields":  [
+                                                                {
+                                                                    "name":  "AudioClip",
+                                                                    "kind":  "pptr",
+                                                                    "target":  "AudioClip"
+                                                                },
+                                                                {
+                                                                    "name":  "OnsetSpeed",
+                                                                    "kind":  "float",
+                                                                    "size":  4
+                                                                },
+                                                                {
+                                                                    "name":  "FullVolumeSpeed",
+                                                                    "kind":  "float",
+                                                                    "size":  4
+                                                                },
+                                                                {
+                                                                    "name":  "OnsetAlpha",
+                                                                    "kind":  "float",
+                                                                    "size":  4
+                                                                },
+                                                                {
+                                                                    "name":  "FullVolumeAlpha",
+                                                                    "kind":  "float",
+                                                                    "size":  4
+                                                                },
+                                                                {
+                                                                    "name":  "ShakeFactor",
+                                                                    "kind":  "float",
+                                                                    "size":  4
+                                                                }
+                                                            ]
+                                             },
+    "AircraftParameters":  {
+                               "base":  null,
+                               "fields":  [
+                                              {
+                                                  "name":  "aircraftName",
+                                                  "kind":  "string"
+                                              },
+                                              {
+                                                  "name":  "rankRequired",
+                                                  "kind":  "int",
+                                                  "size":  4
+                                              },
+                                              {
+                                                  "name":  "airfoils",
+                                                  "kind":  "array",
+                                                  "target":  "Airfoil",
+                                                  "elemIsPptr":  false
+                                              },
+                                              {
+                                                  "name":  "defaultAirfoil",
+                                                  "kind":  "class",
+                                                  "target":  "Airfoil"
+                                              },
+                                              {
+                                                  "name":  "loadouts",
+                                                  "kind":  "array",
+                                                  "target":  "NuclearOption.SavedMission.Loadout",
+                                                  "elemIsPptr":  false
+                                              },
+                                              {
+                                                  "name":  "StandardLoadouts",
+                                                  "kind":  "array",
+                                                  "target":  "StandardLoadout",
+                                                  "elemIsPptr":  false
+                                              },
+                                              {
+                                                  "name":  "DefaultFuelLevel",
+                                                  "kind":  "float",
+                                                  "size":  4
+                                              },
+                                              {
+                                                  "name":  "liveries",
+                                                  "kind":  "array",
+                                                  "target":  "AircraftParameters+Livery",
+                                                  "elemIsPptr":  false
+                                              },
+                                              {
+                                                  "name":  "StatusDisplay",
+                                                  "kind":  "pptr",
+                                                  "target":  "GameObject"
+                                              },
+                                              {
+                                                  "name":  "HUDExtras",
+                                                  "kind":  "pptr",
+                                                  "target":  "GameObject"
+                                              },
+                                              {
+                                                  "name":  "takeoffMusic",
+                                                  "kind":  "pptr",
+                                                  "target":  "AudioClip"
+                                              },
+                                              {
+                                                  "name":  "AoAEffects",
+                                                  "kind":  "class",
+                                                  "target":  "AircraftParameters+OnboardAoAEffects"
+                                              },
+                                              {
+                                                  "name":  "aircraftGLimit",
+                                                  "kind":  "float",
+                                                  "size":  4
+                                              },
+                                              {
+                                                  "name":  "PIDReferenceAirspeed",
+                                                  "kind":  "float",
+                                                  "size":  4
+                                              },
+                                              {
+                                                  "name":  "maxSpeed",
+                                                  "kind":  "float",
+                                                  "size":  4
+                                              },
+                                              {
+                                                  "name":  "takeoffSpeed",
+                                                  "kind":  "float",
+                                                  "size":  4
+                                              },
+                                              {
+                                                  "name":  "takeoffDistance",
+                                                  "kind":  "float",
+                                                  "size":  4
+                                              },
+                                              {
+                                                  "name":  "verticalLanding",
+                                                  "kind":  "bool",
+                                                  "size":  1
+                                              },
+                                              {
+                                                  "name":  "turningRadius",
+                                                  "kind":  "float",
+                                                  "size":  4
+                                              },
+                                              {
+                                                  "name":  "cornerSpeed",
+                                                  "kind":  "float",
+                                                  "size":  4
+                                              },
+                                              {
+                                                  "name":  "approachSpeed",
+                                                  "kind":  "float",
+                                                  "size":  4
+                                              },
+                                              {
+                                                  "name":  "landingSpeed",
+                                                  "kind":  "float",
+                                                  "size":  4
+                                              },
+                                              {
+                                                  "name":  "shortLandingSpeed",
+                                                  "kind":  "float",
+                                                  "size":  4
+                                              },
+                                              {
+                                                  "name":  "cruiseThrottle",
+                                                  "kind":  "float",
+                                                  "size":  4
+                                              },
+                                              {
+                                                  "name":  "minimumRadarAlt",
+                                                  "kind":  "float",
+                                                  "size":  4
+                                              },
+                                              {
+                                                  "name":  "levelBias",
+                                                  "kind":  "float",
+                                                  "size":  4
+                                              },
+                                              {
+                                                  "name":  "hoverTiltFactor",
+                                                  "kind":  "float",
+                                                  "size":  4
+                                              },
+                                              {
+                                                  "name":  "collectivePID",
+                                                  "kind":  "class",
+                                                  "target":  "UnityEngine.Vector3"
+                                              },
+                                              {
+                                                  "name":  "hoverPID",
+                                                  "kind":  "class",
+                                                  "target":  "UnityEngine.Vector3"
+                                              },
+                                              {
+                                                  "name":  "tiltPID",
+                                                  "kind":  "class",
+                                                  "target":  "UnityEngine.Vector3"
+                                              },
+                                              {
+                                                  "name":  "groundTurningRadius",
+                                                  "kind":  "float",
+                                                  "size":  4
+                                              }
+                                          ]
+                           },
+    "VehicleDefinition":  {
+                              "base":  "UnitDefinition",
+                              "fields":  [
+                                             {
+                                                 "name":  "vehicleType",
+                                                 "kind":  "enum",
+                                                 "size":  4,
+                                                 "values":  [
+                                                                "TRUCK",
+                                                                "UGV",
+                                                                "LCV",
+                                                                "AFV",
+                                                                "MBT",
+                                                                "ART",
+                                                                "AAA",
+                                                                "IR_SAM",
+                                                                "R_SAM",
+                                                                "RDR"
+                                                            ]
+                                             }
+                                         ]
+                          },
+    "ShipInfo":  {
+                     "base":  null,
+                     "fields":  [
+                                    {
+                                        "name":  "mass",
+                                        "kind":  "float",
+                                        "size":  4
+                                    },
+                                    {
+                                        "name":  "topSpeed",
+                                        "kind":  "float",
+                                        "size":  4
+                                    }
+                                ]
+                 },
+    "ShipDefinition":  {
+                           "base":  "UnitDefinition",
+                           "fields":  [
+                                          {
+                                              "name":  "shipInfo",
+                                              "kind":  "class",
+                                              "target":  "ShipInfo"
+                                          },
+                                          {
+                                              "name":  "shipType",
+                                              "kind":  "enum",
+                                              "size":  4,
+                                              "values":  [
+                                                             "CV",
+                                                             "LHA",
+                                                             "LFD",
+                                                             "DDG",
+                                                             "FFG",
+                                                             "FFL",
+                                                             "LC",
+                                                             "PB"
+                                                         ]
+                                          }
+                                      ]
+                       },
+    "BuildingDefinition":  {
+                               "base":  "UnitDefinition",
+                               "fields":  [
+                                              {
+                                                  "name":  "buildingType",
+                                                  "kind":  "enum",
+                                                  "size":  4,
+                                                  "values":  [
+                                                                 "CIV",
+                                                                 "FAC",
+                                                                 "RDR",
+                                                                 "DEP",
+                                                                 "HGR",
+                                                                 "DEF",
+                                                                 "AMMO"
+                                                             ]
+                                              }
+                                          ]
+                           },
+    "MissileDefinition":  {
+                              "base":  "UnitDefinition",
+                              "fields":  [
+                                             {
+                                                 "name":  "mass",
+                                                 "kind":  "unsupported",
+                                                 "reason":  "generic (System.Nullable`1[[System.Single, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089]])"
+                                             }
+                                         ]
+                          }
+}

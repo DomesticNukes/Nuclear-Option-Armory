@@ -376,12 +376,13 @@ class NomApp(tk.Tk):
         import unit_editor_tab
         import unit_editor_queue_tab
         import live_editor_tab
+        import controller_tab
         import credits_tab
 
         # Five top-level groups, switched via the bar below rather than one flat row of tabs:
         #   CONFIG       — the gating checklist (game directory, BepInEx), plus Updates — always reachable
-        #   MANAGE       — day-to-day mod management (Plugins/Plugin Config/Missions/Skins/Search) —
-        #                  locked until config's done
+        #   MANAGE       — day-to-day mod management (Plugins/Plugin Config/Missions/Skins/Search/
+        #                  Controller Mapper) — locked until config's done
         #   UNIT EDITOR  — one sub-tab per unit category, plus a shared Queue & Build tab — split
         #                  out from CREATE since it's a big, self-contained editing surface —
         #                  locked until config's done (it compiles/deploys a plugin like CREATE does)
@@ -401,6 +402,7 @@ class NomApp(tk.Tk):
                 (t("  Missions  "), missions_tab.build),
                 (t("  Skins  "), skins_tab.build),
                 (t("  Search  "), mod_repo_tab.build),
+                (t("  Controller Mapper  "), controller_tab.build),
             ]),
             ("unit_editor", t("UNIT EDITOR"), [
                 (t("Aircraft"), _unit_editor_category("Aircraft")),

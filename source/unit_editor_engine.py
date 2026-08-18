@@ -5,11 +5,11 @@ the LIVE running game, matched by jsonKey/aircraftName. Compiled via mod_creator
 — the same pipeline Mod Creator already uses and has verified compiles cleanly against this game's
 real assemblies.
 
-Why a companion plugin instead of editing game files directly: see unit_stat_catalog.py's
-docstring — this game's stat data is baked into Unity ScriptableObject assets whose per-class
-TypeTree (serialization layout) is stripped from the release build, so a generic reader/writer
-can't currently deserialize them. Every BepInEx mod this app found already installed on this
-machine that touches stats (Munitions Manager, AI Aircraft Limit, Gravity Modifier) uses this same
+Why THIS is still worth having even though unit_asset_layout.py can now also write game files
+directly: this path needs no game restart between edits (values re-read every few seconds off a
+running game) and covers AircraftParameters, which direct file writing can't reach yet (see that
+module's docstring). Every BepInEx mod this app found already installed on this machine that
+touches stats (Munitions Manager, AI Aircraft Limit, Gravity Modifier) uses this same
 runtime-reflection technique, not file editing — this generator follows that same proven pattern.
 
 The override VALUES live in a JSON file dropped next to the compiled plugin DLL (read from the

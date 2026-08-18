@@ -6,13 +6,13 @@ a value + key, then queue overrides here — Save/Build/the Build Log live on th
 Build" tab (unit_editor_queue_tab.py), since one companion plugin covers every category's queued
 overrides together (see unit_editor_state.py).
 
-Mechanism recap (full detail in unit_stat_catalog.py / unit_editor_engine.py docstrings): this
-game's unit stats are Unity ScriptableObject data whose serialization layout is stripped from the
-release build, so this app cannot read/write the compiled asset files directly (verified with a
-real UnityPy test). Instead, overrides are applied at runtime by a small generated BepInEx plugin,
-the same technique every stat-touching mod already on this machine (Munitions Manager, AI Aircraft
-Limit, Gravity Modifier) uses. That means changes take effect the next time the affected unit is
-loaded in-game, not retroactively on units already spawned this session.
+Mechanism recap (full detail in unit_stat_catalog.py / unit_editor_engine.py / unit_asset_layout.py
+docstrings): queued overrides here can be applied two ways, chosen on the "Queue & Build" tab —
+either a small generated BepInEx companion plugin (runtime reflection, same technique every
+stat-touching mod already on this machine uses; takes effect next time the unit loads, not
+retroactively on anything already spawned) or, for the 5 UnitDefinition subclasses (not
+AircraftParameters), a direct in-place patch of the game's own compiled resources.assets file,
+game closed, no plugin needed.
 """
 import tkinter as tk
 from pathlib import Path
@@ -43,11 +43,12 @@ class _Tab:
         ttk.Label(intro, text=t("{cat} Editor", cat=self.category), font=theme.FHEAD,
                   foreground=theme.GOLD).pack(anchor="w")
         ttk.Label(intro, text=t(
-            "Overrides apply to the LIVE game via a small companion plugin, re-checked every few "
-            "seconds — not by editing the game's files directly (verified not currently possible). "
-            "Changes take effect next time the unit loads, not retroactively on anything already "
-            "spawned this session. Queue overrides below, then switch to \"Queue & Build\" to save "
-            "and build the plugin — one plugin covers every category together."),
+            "Queue overrides below, then switch to \"Queue & Build\" to apply them — either via a "
+            "small companion plugin (re-checked every few seconds on the LIVE game; changes take "
+            "effect next time the unit loads, not retroactively on anything already spawned this "
+            "session) or, for Aircraft/Vehicle/Ship/Building/Weapon fields, written directly into "
+            "the game's own files with the game closed, no plugin needed. One build/write covers "
+            "every category queued together."),
             wraplength=780, justify="left", foreground=theme.DIM).pack(anchor="w", pady=(2, 0))
 
         picker = ttk.Frame(parent)
@@ -65,12 +66,16 @@ class _Tab:
                                         width=34, font=theme.F)
         self.unit_combo.pack(side=tk.LEFT, padx=(4, 6))
         ui_util.tooltip(self.unit_combo, t(
-            "Known keys come from two places: your own saved missions and a bundled seed list "
-            "(always available), and the game's own master roster, read by the companion plugin "
-            "once you've built, deployed, and run it at least once — normally the FULL in-game "
-            "list for this category. Real unit names (\"F-4 Phantom\" rather than \"Fighter1\") "
-            "only appear once that live read has happened at least once — until then this shows "
-            "the bare jsonKey. Pick one, or type any jsonKey by hand."))
+            "Known keys come from three places: your own saved missions plus a bundled seed list "
+            "(always available, but a fixed snapshot — won't show units added in a later game "
+            "update); a scan of your currently installed game files (also always available, and "
+            "always current — this is normally the FULL list for this category, whatever version "
+            "of the game you have installed); and the game's own live master roster, read by the "
+            "companion plugin once you've built, deployed, and run it at least once. Real unit "
+            "names (\"F-4 Phantom\" rather than \"Fighter1\") show as soon as the game-file scan "
+            "finds them too — no plugin needed for that — though the live source (once you've run "
+            "it) takes priority if you've already overridden a unit's name in-game. Pick one, or "
+            "type any jsonKey by hand."))
 
         self.unit_var = tk.StringVar(value="")
 
@@ -164,27 +169,38 @@ class _Tab:
     # ── Unit picker ──────────────────────────────────────────────────────
 
     def _live_unit_name(self, definition_class: str, key: str, current_values: dict):
-        """The real in-game "Unit Name" (UnitDefinition.unitName — same field as the "Unit Name"
-        row further down this tab) for `key`, from the companion plugin's last live dump — the
-        ONLY source for this, since it's actual ScriptableObject asset data, not anything present
-        in mission JSON or otherwise derivable statically. None if no live dump has ever captured
-        this unit (nothing built/deployed/run yet, or this key hasn't loaded in-game yet)."""
+        """The real "Unit Name" (UnitDefinition.unitName — same field as the "Unit Name" row
+        further down this tab) for `key`. Two sources, preferring the LIVE one: the companion
+        plugin's last dump reflects whatever's actually active in-game right now, including any
+        Unit Name override you've already applied; the direct game-file scan
+        (unit_asset_layout.scan_all_units) reads the same field straight off disk with no plugin/
+        game-run needed, so it's always available but shows the un-overridden base value. Either
+        way this is real ScriptableObject data, not anything present in mission JSON. None if
+        neither source has this key's name (nothing built/deployed/run yet AND no game folder set)."""
         name = current_values.get((definition_class, key, "unitName"))
-        return name.strip() if isinstance(name, str) and name.strip() else None
+        if isinstance(name, str) and name.strip():
+            return name.strip()
+        return self.state.game_file_unit_name(definition_class, key)
 
     def _refresh_known_units(self):
-        # Two sources, merged: mission-scraped keys (plus the bundled seed list) work immediately
+        # Three sources, merged: mission-scraped keys (plus the bundled seed list) work immediately
         # with zero setup but only cover units already known from saved missions; live-dump-
         # discovered keys come from the companion plugin reading the game's own master roster
         # object (the same one its Encyclopedia/hangar screens use) — normally the FULL roster for
         # this category, not just what's been touched — but only once you've built + deployed the
-        # plugin and run the game at least once. That same live dump is also the only place real
-        # unit NAMES come from (see _live_unit_name) — the dropdown shows "Name (jsonKey)" once a
-        # name is known, and just the bare jsonKey until then.
+        # plugin and run the game at least once; game-file-scanned keys are read directly out of
+        # the player's own installed resources.assets (unit_asset_layout.scan_all_unit_keys, no
+        # plugin/game-run needed, ~1-2s) — the definitive, always-current source, since it can
+        # never go stale the way the bundled seed list does when the game ships new units/weapons.
+        # Real unit NAMES (see _live_unit_name) come from either the live dump or that same
+        # game-file scan (unitName is a plain string field, readable with no plugin needed) — the
+        # dropdown shows "Name (jsonKey)" once a name is known from either, and just the bare
+        # jsonKey until then.
         definition_class = usc.CATEGORIES[self.category]["definition_class"]
         from_missions = set(usc.known_unit_keys(self.app.missions_dir()).get(self.category, []))
         from_game = set(self.state.known_keys_for_type(definition_class))
-        keys = sorted(from_missions | from_game)
+        from_files = set(self.state.known_keys_from_game_files(definition_class))
+        keys = sorted(from_missions | from_game | from_files)
 
         current_values = self.state.read_current_values()
         self._key_by_display = {}
@@ -202,8 +218,9 @@ class _Tab:
             self.unit_display_var.set(display_values[0])
         self.status_var.set(t(
             "{n} known {cat} key(s) — {m} from your saved missions, {d} seen live in-game, "
-            "{named} with a real name known.", n=len(keys), cat=self.category, m=len(from_missions),
-            d=len(from_game), named=named))
+            "{f} scanned from your current game files, {named} with a real name known.",
+            n=len(keys), cat=self.category, m=len(from_missions), d=len(from_game),
+            f=len(from_files), named=named))
 
     def _sync_ap_key_default(self):
         if self.category != "Aircraft" or not self._ap_key_auto:
@@ -218,14 +235,37 @@ class _Tab:
         if not self._syncing_ap_key:
             self._ap_key_auto = False
 
+    # AircraftParameters field name -> (reference dataset dict key, unit conversion fn | None).
+    # Only the fields with a clean, unambiguous semantic match to something the reference dataset
+    # actually documents — see data/aircraft_wiki_reference.json's own "_provenance" note for what
+    # was deliberately left out (turningRadius, cornerSpeed, cruiseThrottle, minimumRadarAlt,
+    # hoverTiltFactor, groundTurningRadius, takeoffDistance: internal flight-feel tuning knobs with
+    # no published player-facing spec-sheet number to match against).
+    _REFERENCE_FIELD_MAP = {
+        "rankRequired": ("rank", None),
+        "aircraftGLimit": ("g_limit", None),
+        "maxSpeed": ("max_speed_kmh", lambda kmh: kmh / 3.6),   # km/h -> m/s, matching the field's own unit
+    }
+
     def _refresh_current_values(self):
         """Reads the companion plugin's last dump (if any) and pushes each row's live current
-        value in — a no-op, not an error, if the plugin hasn't been built/deployed/run yet."""
+        value in — a no-op, not an error, if the plugin hasn't been built/deployed/run yet. Also
+        pushes this unit's real value from the reference dataset (Aircraft only, see
+        _REFERENCE_FIELD_MAP) into any row that doesn't already have a captured value — never
+        overrides one, and never overrides a value the user's already typed in."""
         values = self.state.read_current_values()
+        reference = usc.wiki_reference(self.category, self.unit_var.get()) if self.category == "Aircraft" else None
         for (class_name, field_name), row in self.rows.items():
             entry_type, key = self._resolve_type_and_key(class_name)
             lookup_key = (entry_type, key, field_name)
             row.set_current(values.get(lookup_key), self.state.baseline.get(lookup_key))
+            ref_spec = reference and self._REFERENCE_FIELD_MAP.get(field_name)
+            if ref_spec:
+                ref_key, convert = ref_spec
+                raw = reference.get(ref_key)
+                if raw is not None:
+                    value = convert(raw) if convert else raw
+                    row.set_reference_default(f"{value:g}" if isinstance(value, float) else str(value))
 
     # ── Runtime type/key resolution ──────────────────────────────────────
 

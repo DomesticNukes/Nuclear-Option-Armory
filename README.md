@@ -24,7 +24,7 @@ Grab the latest build from the [Actions tab](https://github.com/DomesticNukes/Nu
 
 Tabs are grouped under **CONFIG** (Config: game folder + BepInEx + Companion Tools install — gates
 the rest of the app until the first two are done; Updates: checks for a newer Armory), **MANAGE**
-(Plugins/Plugin Config/Missions/Skins/Search), **UNIT EDITOR** (live in-game stat overrides, one
+(Plugins/Plugin Config/Missions/Skins/Search/Controller Mapper), **UNIT EDITOR** (live in-game stat overrides, one
 sub-tab per unit category plus a shared Queue & Build tab), **CREATE** (Mod Creator / Live Editor
 Suite), and **CREDITS** (about + full attribution). A persistent Launch button, top right, starts
 the game from anywhere in the app.
@@ -108,6 +108,20 @@ Config tab), with SHA-256 hash verification when the manifest provides one. Only
 non-zip archives (`.7z`/`.rar`) are shown (so search stays useful for everything in the manifest)
 but not auto-installed, since this app hasn't verified where the former needs to land and the
 stdlib can't extract the latter. Installed mods show up in the Plugins tab automatically.
+
+**Controller Mapper** — remap a connected gamepad's buttons/axes straight into Nuclear Option's real
+saved keybindings, via a clickable diagram (plus a full list of every real button/axis on the
+controller, for anything the diagram's fuzzy name-matching doesn't confidently place). The diagram
+draws real Xbox/PlayStation controller artwork (auto-detected from the connected controller, or
+picked manually via the **Diagram:** setting) with hotspots at real, measured button positions —
+bumpers/triggers aren't drawn separately in the source artwork, so those get a "bracket pointer"
+marker instead, offering a choice between the bumper and trigger on that side when clicked. The game
+uses [Rewired](https://guavaman.com/projects/rewired/) for all input, which stores every binding as
+real, readable XML in Windows Registry PlayerPrefs — this tab reads and surgically edits that same
+data the game's own Controls menu uses, always backing up the original bytes first and refusing to
+write while the game is running. Needs a one-time companion plugin ("Armory Controller Dump") built
+from this tab, since the registry only ever stores numeric action/button IDs — the real names come
+from Rewired's live runtime API, read once the game's been launched with a controller connected.
 
 ### Unit Editor tab
 
@@ -217,6 +231,24 @@ is also installed (`winget install JRSoftware.InnoSetup`), it additionally build
   resolution failure, confirmed by running the real tool against real installed plugins) — Armory
   treats any non-zero exit from it as a distinct "check failed" result rather than either crashing
   or silently reporting a false compatibility verdict.
+- Rewired stores keybindings as Windows Registry PlayerPrefs, one value per (player, device type,
+  action category, hardware) — real, readable UTF-8 XML despite the XML's own header claiming
+  `encoding="utf-16"` (confirmed against a real captured value, not assumed from the declaration).
+  The Controller Mapper edits it surgically, replacing/splicing around one `<ActionElementMap>`
+  block's own exact original substring at a time, never rebuilding or reserializing the rest of the
+  file — the same "only touch what changed" discipline the `.cfg` editor uses.
+- The companion Controller Dump plugin hand-builds its JSON output instead of using Unity's
+  `JsonUtility`: confirmed live that `JsonUtility.ToJson` silently returns an empty `"{}"` for any
+  object containing a `List<T>` field on this game's runtime, even a single-item, correctly-wrapped
+  list with real data — a plain object with only int/string fields serializes fine via the same call.
+- The Controller Mapper's diagrams render real SVG artwork via a small, self-contained parser
+  (`svg_path.py`) instead of a graphics library, since Tkinter has no native SVG support — it reads
+  `<path>`/`<circle>` elements with `xml.etree.ElementTree` (stdlib) and flattens bezier curves and
+  elliptical arcs into straight-line points Canvas can draw directly. The arc math specifically
+  matters for correctness, not just polish: both source SVGs draw full circles as four 90-degree
+  arcs, and a naive straight-line approximation between each arc's own endpoints draws a diamond, not
+  a circle — a real defect this project hit, subtle enough at small on-screen sizes to pass an
+  initial visual check, caught only once an automated roundness check was added.
 
 ## Special thanks
 
@@ -240,6 +272,15 @@ is also installed (`winget install JRSoftware.InnoSetup`), it additionally build
   the live in-game inspector bundled as part of the Live Editor Suite.
 - **[9138noms](https://github.com/9138noms)** — [DllInspector](https://github.com/9138noms/DllInspector),
   the mod-DLL compatibility checker installed from the Config tab and run from the Plugins tab.
+- **[Guavaman Enterprises](https://guavaman.com/)** — [Rewired](https://guavaman.com/projects/rewired/),
+  the input middleware Nuclear Option itself uses for every keybinding, which is what makes the
+  Controller Mapper tab possible in the first place — Armory doesn't ship or modify it, just reads
+  and edits the real binding data the game's own Rewired instance already saves.
+- **everesd_design** — the real Xbox and PlayStation controller vector artwork the Controller Mapper
+  renders, from Pixabay: [Controller, Gamepad, Xbox](https://pixabay.com/vectors/controller-gamepad-xbox-video-games-1827840/)
+  and [Ps4, Playstation, Controller](https://pixabay.com/vectors/ps4-playstation-controller-to-play-5172918/),
+  both under the [Pixabay Content License](https://pixabay.com/service/license-summary/) (free to
+  use and modify, attribution not required — credited here anyway, matching this list's own habit).
 - **Shockfront** — thank you for making Nuclear Option, and for building it in a way that welcomes
   modding in the first place. None of this app would exist without that.
 - **[Harmony](https://github.com/pardeike/Harmony)** — the runtime-patching library used by the Mod

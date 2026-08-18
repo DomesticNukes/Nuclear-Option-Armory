@@ -4,6 +4,84 @@ All notable changes to Nuclear Option Armory are documented here. Format loosely
 [Keep a Changelog](https://keepachangelog.com/); versions match the app's own `APP_VERSION`
 constant (`app_version.py`, shown on the Credits tab).
 
+## [0.9.0] - 2026-08-17
+
+### Added
+
+- **Direct-to-game-file editing for the Unit Editor** — a second way to apply queued Aircraft/
+  Vehicle/Ship/Building/Weapon overrides, alongside the existing companion-plugin path: "Write
+  Directly to Game Files…" (Queue & Build tab) patches the values straight into the game's own
+  compiled `resources.assets`, in place, with the game closed — no plugin build/deploy/run needed.
+  Made possible by reflecting the real field layout out of the game's own `Assembly-CSharp.dll`
+  (`reflect_unit_layout.ps1` + `unit_asset_layout.py`): even though Unity strips per-class
+  TypeTrees from release builds, that exact layout is still fully recoverable from the compiled
+  assembly's own .NET reflection metadata. Every touched object's original bytes are backed up
+  first; the game must be closed; only fixed-width numeric fields (float/int/bool/enum) are
+  supported this way — string/array/reference fields, and all of AircraftParameters (its scalar
+  fields sit behind array element types not yet reflected), still need the companion plugin.
+  Verified byte-exact against all 5 real unit categories, and against a real live edit-then-restore
+  round trip on the player's own installed game file.
+- The Unit Editor's "known units" picker now ALSO scans the player's own installed game files
+  directly (`unit_asset_layout.scan_all_unit_keys`, well under a second) as a third source, in
+  addition to the bundled seed list and the companion plugin's live dump — so the picker always
+  reflects whichever units/weapons are in the currently installed game version, with nothing going
+  stale when the game ships new ones in a future update.
+
+## [0.8.1] - 2026-08-17
+
+### Added
+
+- **Controller Mapper now draws real Xbox/PlayStation controller artwork** instead of a generic
+  hand-drawn silhouette — a small, stdlib-only SVG parser (`svg_path.py`, no new dependency) renders
+  the real vector artwork with real, measured hotspot positions for every button, so a click always
+  lands on the real button in the real picture. Which artwork to draw is auto-detected from the real
+  connected controller's own reported name, with a **Diagram:** setting (Auto/Xbox/PlayStation/
+  Generic, remembered across restarts) to override it.
+- Neither source SVG draws separate bumper/trigger (LB/RB/LT/RT) shapes — both are simple front-
+  facing icon art with no shoulder-button glyphs. Rather than invent artwork that doesn't exist,
+  added two "bracket pointer" marks (like a manual's "see here" leader) at the top-left/top-right,
+  each covering both the bumper and trigger on that side; clicking one offers a choice between them.
+
+### Fixed (found live while building the above)
+
+- A real bug in the new SVG parser itself, caught by an automated roundness check after an earlier
+  visual check missed it: elliptical arc ("A") path commands were parsed but never actually used —
+  the arc handler still fell through to a straight-line approximation. Both source SVGs draw full
+  circles (button backgrounds, the Xbox Guide ring) as four 90-degree arcs each, so the un-wired
+  version rendered them as diamonds/squares, not circles — subtle enough at small on-screen sizes
+  that an earlier visual spot-check didn't catch it, but a real, visible defect. Fixed by actually
+  calling the (separately correct, verified in isolation) arc-flattening function from the path
+  command dispatcher.
+
+## [0.8.0] - 2026-08-16
+
+### Added
+
+- **Controller Mapper** (under MANAGE) — remap a connected gamepad's buttons/axes straight into
+  Nuclear Option's real saved keybindings, via a clickable 2D controller diagram. The game uses
+  Rewired for all input (confirmed: `Rewired_Core.dll`/`Rewired_Windows.dll` in
+  `NuclearOption_Data/Managed`), which stores every binding as real, readable XML in Windows
+  Registry PlayerPrefs — this tab reads and surgically edits that same data the game's own Controls
+  menu uses, byte-for-byte preserving everything untouched, always backing up the original bytes
+  first, and refusing to write while the game is running. Needs a one-time companion plugin
+  ("Armory Controller Dump") to read real action and button names from Rewired's live runtime API,
+  since the registry only ever stores numeric IDs.
+- A full "every button/axis on this controller" list sits alongside the diagram, covering every
+  real physical element even ones the diagram's fuzzy name-matching can't confidently place onto a
+  drawn hotspot — so the feature stays fully usable on unfamiliar controllers.
+
+### Fixed (found live while building the above)
+
+- A real Unity `JsonUtility` limitation on this game's runtime: `JsonUtility.ToJson` silently
+  returns an empty `"{}"` for any object containing a `List<T>` field, even a single-item,
+  correctly-wrapped list with real data — confirmed with a live diagnostic showing genuinely
+  populated data (7 categories, 61 actions) still serializing to 2 bytes. The companion plugin's
+  dump is hand-built as a JSON string instead, sidestepping `JsonUtility` entirely.
+- Two more issues confirmed real but out of scope for this release, flagged for a follow-up fix:
+  the Unit Editor's own live-values dump reads from the plugin library folder instead of the
+  deployed BepInEx/plugins copy the running game actually writes to, and likely hits this same
+  `JsonUtility` limitation.
+
 ## [0.7.3] - 2026-08-16
 
 ### Added

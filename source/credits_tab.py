@@ -92,6 +92,25 @@ def build(parent, app):
           "editing its files.")
     )
 
+    _entry(
+        credits, "9138noms", t("DllInspector"), "github.com/9138noms/DllInspector",
+        t("The mod-DLL compatibility checker installed via the Config tab and run from the "
+          "Plugins tab's Check Compatibility button, downloaded from 9138noms's own releases."))
+
+    _entry(
+        credits, "Guavaman Enterprises", t("Rewired"), "guavaman.com/projects/rewired",
+        t("The input middleware Nuclear Option itself uses for every keybinding — not something "
+          "Armory installs, but what makes the Controller Mapper tab possible: it reads and edits "
+          "the real binding data the game's own Rewired instance already saves."))
+
+    _entry(
+        credits, "everesd_design", t("Xbox & PlayStation controller artwork (Pixabay)"),
+        "pixabay.com/vectors/controller-gamepad-xbox-video-games-1827840",
+        t("The real controller vector art the Controller Mapper's diagrams render, under the "
+          "Pixabay Content License (free to use and modify; attribution not required, credited "
+          "here anyway). Unlike everything else on this page, these two files ARE bundled "
+          "directly in Armory's own source, not downloaded separately at install time."))
+
     tools = ttk.LabelFrame(inner, text=t("Build tooling — used to produce this app's own installer"))
     tools.pack(fill="x", padx=2, pady=(0, 12))
 
@@ -102,8 +121,10 @@ def build(parent, app):
 
     ttk.Label(
         inner, foreground=theme.DIM, wraplength=560, justify="left",
-        text=t("Nuclear Option Armory doesn't bundle or redistribute any of the above projects' "
-               "source or binaries — each is downloaded from its own official GitHub releases at "
-               "install time, or invoked as an external build tool. All trademarks and copyrights "
+        text=t("Nuclear Option Armory doesn't bundle or redistribute any of the above tools' or "
+               "libraries' source or binaries — each is downloaded from its own official GitHub "
+               "releases at install time, or invoked as an external build tool. The one exception "
+               "is the controller artwork (everesd_design, above), which IS bundled directly in "
+               "Armory's own source under its real Pixabay license. All trademarks and copyrights "
                "belong to their respective owners.")
     ).pack(anchor="w", padx=2, pady=(0, 12))

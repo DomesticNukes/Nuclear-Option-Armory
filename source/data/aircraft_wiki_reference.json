@@ -1,0 +1,121 @@
+{
+  "_provenance": "Numeric specs scraped from the community wiki nuclearoption.wiki.gg (one page per real aircraft) on 2026-08-17, at the user's request. This is REFERENCE data only, shown with clear 'wiki:' attribution in the Unit Editor — never silently written into StatField.default_value (which is reserved for a real C#-declared source constant) and never auto-applied as a stat override. Not verified against the compiled game binary; where a page listed two differing 'max speed' figures (an infobox summary vs. the detailed Performance table), the Performance table figure was kept as the more specific one. Units are exactly as published on the wiki (km/h, kg, m) and converted at display time, not pre-converted here.",
+  "AttackHelo1": {
+    "wiki_url": "https://nuclearoption.wiki.gg/wiki/SAH-46_Chicane",
+    "wiki_name": "SAH-46 Chicane",
+    "rank": 1, "cost_musd": 31.5, "max_speed_kmh": 360, "g_limit": 3.5,
+    "crew": "1 Pilot, 1 Co-Pilot Gunner",
+    "length_m": 16.6, "width_m": 7.4, "height_m": 4.1,
+    "empty_weight_kg": 7640, "mtow_kg": 8900, "fuel_capacity_kg": 1050,
+    "service_ceiling_m": 5200, "powerplant": "2x 1,620 kW Turboshaft"
+  },
+  "CAS1": {
+    "wiki_url": "https://nuclearoption.wiki.gg/wiki/A-19_Brawler",
+    "wiki_name": "A-19 Brawler",
+    "rank": 2, "cost_musd": 36.0, "max_speed_kmh": 740, "stall_speed_kmh": 220, "g_limit": 7.5,
+    "crew": "1 pilot",
+    "length_m": 18.0, "wingspan_m": 19.0, "height_m": 3.5,
+    "empty_weight_kg": 10620, "mtow_kg": 19000, "fuel_capacity_kg": 4800,
+    "service_ceiling_m": 8000, "powerplant": "2x 3400 kW propfans"
+  },
+  "FastBomber1": {
+    "wiki_url": "https://nuclearoption.wiki.gg/wiki/Alkyon_AB-4",
+    "wiki_name": "Alkyon AB-4",
+    "rank": 6, "cost_musd": 390, "max_speed_kmh": 1725, "stall_speed_kmh": 230, "g_limit": 8.0,
+    "crew": "2 pilots",
+    "length_m": 24.9, "wingspan_m": 31.6, "height_m": 4.4,
+    "empty_weight_kg": 34100, "mtow_kg": 62000, "fuel_capacity_kg": 18200,
+    "service_ceiling_m": 17858, "powerplant": "4x 70kN afterburning turbofan"
+  },
+  "CI-22": {
+    "wiki_url": "https://nuclearoption.wiki.gg/wiki/CI-22_Cricket",
+    "wiki_name": "CI-22 Cricket",
+    "rank": 0, "cost_musd": 11.5, "max_speed_kmh": 515, "stall_speed_kmh": 140, "g_limit": 6.5,
+    "crew": "1 pilot, 1 copilot",
+    "length_m": 10.4, "wingspan_m": 11.6, "height_m": 3.4,
+    "empty_weight_kg": 3100, "mtow_kg": 4800, "fuel_capacity_kg": 500,
+    "service_ceiling_m": 9000, "powerplant": "1x 1,500 kW turboprop"
+  },
+  "EW1": {
+    "wiki_url": "https://nuclearoption.wiki.gg/wiki/EW-25_Medusa",
+    "wiki_name": "EW-25 Medusa",
+    "rank": 4, "cost_musd": 145, "max_speed_kmh": 1050, "stall_speed_kmh": 240, "g_limit": 6.0,
+    "crew": "2 pilots, 2 EWOs",
+    "length_m": 19.2, "wingspan_m": 18.1, "height_m": 4.5,
+    "empty_weight_kg": 16580, "mtow_kg": 26000, "fuel_capacity_kg": 5500,
+    "service_ceiling_m": 14000,
+    "powerplant": "2x 65 kN turbofan (150 kN closed intake / 225 kN with auxiliary doors)"
+  },
+  "FS-12": {
+    "wiki_url": "https://nuclearoption.wiki.gg/wiki/FS-12_Revoker",
+    "wiki_name": "FS-12 Revoker",
+    "rank": 3, "cost_musd": 65, "max_speed_kmh": 1445, "stall_speed_kmh": 220, "g_limit": 9.0,
+    "crew": "1 pilot",
+    "length_m": 15.8, "wingspan_m": 11.0, "height_m": 5.2,
+    "empty_weight_kg": 8680, "mtow_kg": 16000, "fuel_capacity_kg": 3200,
+    "service_ceiling_m": 16500, "powerplant": "1x 150 kN turbofan (with afterburner)"
+  },
+  "SmallFighter1": {
+    "wiki_url": "https://nuclearoption.wiki.gg/wiki/FS-20_Vortex",
+    "wiki_name": "FS-20 Vortex",
+    "rank": 3, "cost_musd": 90, "max_speed_kmh": 1445, "stall_speed_kmh": 220, "g_limit": 9.0,
+    "crew": "1 pilot",
+    "length_m": 14.1, "wingspan_m": 9.3, "height_m": 3.1,
+    "empty_weight_kg": 9060, "mtow_kg": 16000, "fuel_capacity_kg": 2800,
+    "service_ceiling_m": 16500, "powerplant": "1x 135 kN turbofan (variable afterburner)"
+  },
+  "Multirole1": {
+    "wiki_url": "https://nuclearoption.wiki.gg/wiki/KR-67_Ifrit",
+    "wiki_name": "KR-67 Ifrit",
+    "rank": 4, "cost_musd": 126, "max_speed_kmh": 1500, "stall_speed_kmh": 220, "g_limit": 9.0,
+    "crew": "1 pilot",
+    "length_m": 19.0, "wingspan_m": 14.3, "height_m": 4.6,
+    "empty_weight_kg": 16040, "mtow_kg": 30000, "fuel_capacity_kg": 8200,
+    "service_ceiling_m": 17858, "powerplant": "2x 140 kN turbofan (with afterburner)"
+  },
+  "QuadVTOL1": {
+    "wiki_url": "https://nuclearoption.wiki.gg/wiki/VL-49_Tarantula",
+    "wiki_name": "VL-49 Tarantula",
+    "rank": 2, "cost_musd": 118, "max_speed_kmh": 535, "g_limit": 2.5,
+    "crew": "2 Pilots, 1 Gunner",
+    "length_m": 28.5, "wingspan_m": 22.7, "height_m": 6.1,
+    "empty_weight_kg": 28900, "mtow_kg": 53500, "fuel_capacity_kg": 8600,
+    "service_ceiling_m": 8000, "powerplant": "4x 4600 kW turbine"
+  },
+  "SFB": {
+    "wiki_url": "https://nuclearoption.wiki.gg/wiki/SFB-81_Darkreach",
+    "wiki_name": "SFB-81 Darkreach",
+    "rank": 5, "cost_musd": 225, "max_speed_kmh": 1325, "stall_speed_kmh": 240, "g_limit": 4.0,
+    "crew": "2 pilot",
+    "length_m": 27.4, "wingspan_m": 36.5, "height_m": 4.0,
+    "empty_weight_kg": 63150, "mtow_kg": 115000, "fuel_capacity_kg": 27000,
+    "service_ceiling_m": 13500, "powerplant": "2x 210 kN turbofan"
+  },
+  "Trainer": {
+    "wiki_url": "https://nuclearoption.wiki.gg/wiki/T/A-30_Compass",
+    "wiki_name": "T/A-30 Compass",
+    "rank": 1, "cost_musd": 21.8, "max_speed_kmh": 1140, "stall_speed_kmh": 180, "g_limit": 8.0,
+    "crew": "1 pilot, 1 copilot",
+    "length_m": 13.2, "wingspan_m": 12.1, "height_m": 3.3,
+    "empty_weight_kg": 5320, "mtow_kg": 9500, "fuel_capacity_kg": 1900,
+    "service_ceiling_m": 12500, "powerplant": "2x 30 kN turbofans"
+  },
+  "UtilityHelo1": {
+    "wiki_url": "https://nuclearoption.wiki.gg/wiki/UH-90_Ibis",
+    "wiki_name": "UH-90 Ibis",
+    "rank": 1, "cost_musd": 29.5, "max_speed_kmh": 512, "stall_speed_kmh": 0, "g_limit": 3.5,
+    "crew": "2 pilots",
+    "length_m": 14.2, "width_m": 6.4, "height_m": 4.6,
+    "empty_weight_kg": 7300, "fuel_capacity_kg": 1400,
+    "service_ceiling_m": 5350
+  },
+  "VTOLTrainer1": {
+    "wiki_url": "https://nuclearoption.wiki.gg/wiki/VT-7_Vagrant",
+    "wiki_name": "VT-7 Vagrant",
+    "rank": 1, "cost_musd": 28.9, "max_speed_kmh": 1210, "stall_speed_kmh": 210, "g_limit": 8.0,
+    "crew": "2 pilots",
+    "length_m": 13.4, "wingspan_m": 9.8, "height_m": 3.9,
+    "empty_weight_kg": 5900, "mtow_kg": 10100, "fuel_capacity_kg": 3700,
+    "service_ceiling_m": 13000, "powerplant": "1x 96 kN turbofans"
+  }
+}
