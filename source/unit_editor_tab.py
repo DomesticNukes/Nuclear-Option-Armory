@@ -250,15 +250,20 @@ class _Tab:
     def _refresh_current_values(self):
         """Reads the companion plugin's last dump (if any) and pushes each row's live current
         value in — a no-op, not an error, if the plugin hasn't been built/deployed/run yet. Also
-        pushes this unit's real value from the reference dataset (Aircraft only, see
-        _REFERENCE_FIELD_MAP) into any row that doesn't already have a captured value — never
-        overrides one, and never overrides a value the user's already typed in."""
+        pushes a reference default into any row that doesn't already have a captured value (never
+        overrides one, and never overrides a value the user's already typed in), preferring —
+        in order — the community-wiki reference dataset (Aircraft only, see _REFERENCE_FIELD_MAP)
+        and then a direct read of this field's REAL current value off the player's own installed
+        game files (state.direct_file_current_value) — the only source at all for Missile-class
+        fields (blastYield, pierceDamage, gLimit, maxTurnRate), which can never appear in the
+        companion plugin's dump (see unit_editor_engine._dump_targets's own note on why)."""
         values = self.state.read_current_values()
         reference = usc.wiki_reference(self.category, self.unit_var.get()) if self.category == "Aircraft" else None
         for (class_name, field_name), row in self.rows.items():
             entry_type, key = self._resolve_type_and_key(class_name)
             lookup_key = (entry_type, key, field_name)
             row.set_current(values.get(lookup_key), self.state.baseline.get(lookup_key))
+
             ref_spec = reference and self._REFERENCE_FIELD_MAP.get(field_name)
             if ref_spec:
                 ref_key, convert = ref_spec
@@ -266,6 +271,10 @@ class _Tab:
                 if raw is not None:
                     value = convert(raw) if convert else raw
                     row.set_reference_default(f"{value:g}" if isinstance(value, float) else str(value))
+            elif key:
+                file_value = self.state.direct_file_current_value(entry_type, key, field_name)
+                if file_value is not None:
+                    row.set_reference_default(file_value)
 
     # ── Runtime type/key resolution ──────────────────────────────────────
 
@@ -281,6 +290,10 @@ class _Tab:
         unit_key = self.unit_var.get().strip()
         if class_name == "AircraftParameters":
             return "AircraftParameters", (self.ap_key_var.get().strip() or unit_key)
+        if class_name != definition_class:
+            # Any other extra_classes entry (currently only "Missile") — found by the SAME jsonKey
+            # as the category's own definition_class, unlike AircraftParameters' separate key.
+            return class_name, unit_key
         return definition_class, unit_key
 
     # ── Queue ────────────────────────────────────────────────────────────

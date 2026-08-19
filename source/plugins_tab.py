@@ -33,15 +33,6 @@ _LIST_FONT = ("Courier New", 11)     # up from 10 — the plugin list is the tab
 _DETAIL_FONT = ("Courier New", 10)   # up from ttk's ~9 default
 
 
-def _atomic_write_json(path: Path, obj) -> None:
-    tmp = path.with_suffix(path.suffix + ".tmp")
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(obj, f, indent=2)
-        f.flush()
-        os.fsync(f.fileno())
-    os.replace(tmp, path)
-
-
 def _norm(path) -> str:
     return os.path.normcase(os.path.abspath(str(path)))
 
@@ -192,7 +183,7 @@ class _Tab:
                     {"path": str(p), "enabled": bool(v.get()), "description": self.descriptions.get(_norm(p), "")}
                     for v, p in self.plugin_vars
                 ]}
-                _atomic_write_json(self._state_file(), data)
+                ui_util.atomic_write_json(self._state_file(), data)
         except Exception:
             pass
 
@@ -237,12 +228,34 @@ class _Tab:
             self.plugin_vars.append((tk.BooleanVar(value=enabled), entry))
             self._get_meta(entry)   # warm the cache
 
+        self._scan_duplicates()
+
         if adopted_names:
-            self.status_var.set(t("{n} plugin(s) in library. ({a} adopted from BepInEx/plugins.)",
-                                   n=len(self.plugin_vars), a=len(adopted_names)))
+            base_status = t("{n} plugin(s) in library. ({a} adopted from BepInEx/plugins.)",
+                             n=len(self.plugin_vars), a=len(adopted_names))
         else:
-            self.status_var.set(t("{n} plugin(s) in library.", n=len(self.plugin_vars)))
+            base_status = t("{n} plugin(s) in library.", n=len(self.plugin_vars))
+        if self._duplicate_guids:
+            n_dupes = sum(len(paths) for paths in self._duplicate_guids.values())
+            base_status += " " + t(
+                "⚠ {n} plugin(s) look like duplicates (same GUID under different files) — see red "
+                "entries below.", n=n_dupes)
+        self.status_var.set(base_status)
         self._redraw_list()
+
+    def _scan_duplicates(self):
+        """Groups the current library by GUID (skipping unreadable/GUID-less entries — nothing
+        reliable to compare there) and keeps only groups with more than one entry: the SAME plugin
+        installed under two different files/folders — a real, observed problem (this exact library
+        has shown two separate "Unrestricted Weapons" entries), not a hypothetical one. GUID, not
+        display name, since a name collision alone doesn't mean it's really the same plugin, while
+        two DIFFERENT files sharing an identical [BepInPlugin] GUID definitely are."""
+        by_guid = {}
+        for _, path in self.plugin_vars:
+            guid = self._get_meta(path).guid
+            if guid:
+                by_guid.setdefault(guid, []).append(path)
+        self._duplicate_guids = {g: paths for g, paths in by_guid.items() if len(paths) > 1}
 
     def _direct_companion_tool_guids(self) -> set:
         """GUIDs of tools the Config tab installs straight into BepInEx/plugins (Blueprinter,
@@ -343,9 +356,20 @@ class _Tab:
         self._update_detail()
         self._save_state()
 
+    def _is_duplicate(self, path: Path) -> bool:
+        guid = self._get_meta(path).guid
+        return bool(guid) and guid in getattr(self, "_duplicate_guids", {})
+
     def _tint_row(self, idx: int, var: tk.BooleanVar):
-        """Enabled plugins glow HUD green — the "armed/active" cockpit-instrument look."""
-        self.listbox.itemconfig(idx, foreground=(theme.HUD if var.get() else theme.TEXT))
+        """Enabled plugins glow HUD green — the "armed/active" cockpit-instrument look. A duplicate
+        (same GUID as another library entry) overrides that to red — worth noticing even if it's
+        currently enabled, maybe more so, since deploying two copies of the same plugin is exactly
+        the situation worth flagging."""
+        _, path = self.plugin_vars[idx]
+        if self._is_duplicate(path):
+            self.listbox.itemconfig(idx, foreground=theme.RED)
+        else:
+            self.listbox.itemconfig(idx, foreground=(theme.HUD if var.get() else theme.TEXT))
 
     def _refresh_item(self, idx: int):
         if not (0 <= idx < len(self.plugin_vars)):
@@ -499,6 +523,12 @@ class _Tab:
         row_index = 0
         for line in lines:
             self._add_detail_row(row_index, line)
+            row_index += 1
+        if meta.guid and meta.guid in getattr(self, "_duplicate_guids", {}):
+            others = [p.name for p in self._duplicate_guids[meta.guid] if p != path]
+            self._add_detail_row(row_index, t(
+                "⚠ DUPLICATE — same GUID as: {others}. Deploying both installs the same plugin "
+                "twice; disable/remove one.", others=", ".join(others)), foreground=theme.RED)
             row_index += 1
         for text, is_warning in self._dependency_status_lines(path):
             self._add_detail_row(row_index, text, foreground=(theme.RED if is_warning else None))

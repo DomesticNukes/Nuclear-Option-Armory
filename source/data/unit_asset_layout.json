@@ -292,11 +292,6 @@
                                        "kind":  "string"
                                    },
                                    {
-                                       "name":  "id",
-                                       "kind":  "int",
-                                       "size":  4
-                                   },
-                                   {
                                        "name":  "liftCoef",
                                        "kind":  "class",
                                        "target":  "UnityEngine.AnimationCurve"
@@ -357,11 +352,6 @@
                                                                         {
                                                                             "name":  "m_SubObjectType",
                                                                             "kind":  "string"
-                                                                        },
-                                                                        {
-                                                                            "name":  "m_Operation",
-                                                                            "kind":  "class",
-                                                                            "target":  "UnityEngine.ResourceManagement.AsyncOperations.AsyncOperationHandle"
                                                                         }
                                                                     ]
                                                      },
@@ -448,11 +438,6 @@
                                                   "kind":  "array",
                                                   "target":  "Airfoil",
                                                   "elemIsPptr":  false
-                                              },
-                                              {
-                                                  "name":  "defaultAirfoil",
-                                                  "kind":  "class",
-                                                  "target":  "Airfoil"
                                               },
                                               {
                                                   "name":  "loadouts",
@@ -678,11 +663,821 @@
     "MissileDefinition":  {
                               "base":  "UnitDefinition",
                               "fields":  [
-                                             {
-                                                 "name":  "mass",
-                                                 "kind":  "unsupported",
-                                                 "reason":  "generic (System.Nullable`1[[System.Single, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089]])"
-                                             }
+
                                          ]
-                          }
+                          },
+    "PersistentID":  {
+                         "base":  null,
+                         "fields":  [
+                                        {
+                                            "name":  "Id",
+                                            "kind":  "uint",
+                                            "size":  4
+                                        }
+                                    ]
+                     },
+    "WeaponStation":  {
+                          "base":  null,
+                          "fields":  [
+                                         {
+                                             "name":  "Weapons",
+                                             "kind":  "array",
+                                             "target":  "Weapon",
+                                             "elemIsPptr":  true
+                                         },
+                                         {
+                                             "name":  "Turrets",
+                                             "kind":  "array",
+                                             "target":  "Turret",
+                                             "elemIsPptr":  true
+                                         },
+                                         {
+                                             "name":  "WeaponInfo",
+                                             "kind":  "pptr",
+                                             "target":  "WeaponInfo"
+                                         },
+                                         {
+                                             "name":  "Number",
+                                             "kind":  "unsupported",
+                                             "target":  "System.Byte",
+                                             "reason":  "nested type not found in Assembly-CSharp.dll: System.Byte"
+                                         },
+                                         {
+                                             "name":  "Cargo",
+                                             "kind":  "bool",
+                                             "size":  1
+                                         },
+                                         {
+                                             "name":  "Reloading",
+                                             "kind":  "bool",
+                                             "size":  1
+                                         },
+                                         {
+                                             "name":  "WeaponActive",
+                                             "kind":  "bool",
+                                             "size":  1
+                                         },
+                                         {
+                                             "name":  "SalvoInProgress",
+                                             "kind":  "bool",
+                                             "size":  1
+                                         },
+                                         {
+                                             "name":  "LastFiredTime",
+                                             "kind":  "float",
+                                             "size":  4
+                                         },
+                                         {
+                                             "name":  "Ammo",
+                                             "kind":  "int",
+                                             "size":  4
+                                         },
+                                         {
+                                             "name":  "FullAmmo",
+                                             "kind":  "int",
+                                             "size":  4
+                                         },
+                                         {
+                                             "name":  "TypeLookup",
+                                             "kind":  "unsupported",
+                                             "reason":  "generic (System.Collections.Generic.Dictionary`2[[UnitDefinition, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null],[OpportunityThreat, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null]])"
+                                         }
+                                     ]
+                      },
+    "Unit":  {
+                 "base":  null,
+                 "fields":  [
+                                {
+                                    "name":  "persistentID",
+                                    "kind":  "class",
+                                    "target":  "PersistentID"
+                                },
+                                {
+                                    "name":  "MapUniqueName",
+                                    "kind":  "string"
+                                },
+                                {
+                                    "name":  "MapHQ",
+                                    "kind":  "pptr",
+                                    "target":  "FactionHQ"
+                                },
+                                {
+                                    "name":  "MapAirbase",
+                                    "kind":  "pptr",
+                                    "target":  "Airbase"
+                                },
+                                {
+                                    "name":  "weaponStations",
+                                    "kind":  "array",
+                                    "target":  "WeaponStation",
+                                    "elemIsPptr":  false
+                                },
+                                {
+                                    "name":  "obstacleTopTransform",
+                                    "kind":  "pptr",
+                                    "target":  "Transform"
+                                },
+                                {
+                                    "name":  "cockpitViewPoint",
+                                    "kind":  "pptr",
+                                    "target":  "Transform"
+                                },
+                                {
+                                    "name":  "definition",
+                                    "kind":  "pptr",
+                                    "target":  "UnitDefinition"
+                                },
+                                {
+                                    "name":  "HasRequestedRearm",
+                                    "kind":  "bool",
+                                    "size":  1
+                                },
+                                {
+                                    "name":  "networked",
+                                    "kind":  "bool",
+                                    "size":  1
+                                },
+                                {
+                                    "name":  "airDensity",
+                                    "kind":  "float",
+                                    "size":  4
+                                },
+                                {
+                                    "name":  "radarAlt",
+                                    "kind":  "float",
+                                    "size":  4
+                                },
+                                {
+                                    "name":  "speed",
+                                    "kind":  "float",
+                                    "size":  4
+                                },
+                                {
+                                    "name":  "RCS",
+                                    "kind":  "float",
+                                    "size":  4
+                                },
+                                {
+                                    "name":  "radar",
+                                    "kind":  "pptr",
+                                    "target":  "TargetDetector"
+                                },
+                                {
+                                    "name":  "dopplerSounds",
+                                    "kind":  "array",
+                                    "target":  "UnityEngine.AudioSource",
+                                    "elemIsPptr":  true
+                                },
+                                {
+                                    "name":  "spawnedEffects",
+                                    "kind":  "array",
+                                    "target":  "DamageParticles",
+                                    "elemIsPptr":  true
+                                }
+                            ]
+             },
+    "Missile+Motor":  {
+                          "base":  null,
+                          "fields":  [
+                                         {
+                                             "name":  "activated",
+                                             "kind":  "bool",
+                                             "size":  1
+                                         },
+                                         {
+                                             "name":  "delayTimer",
+                                             "kind":  "float",
+                                             "size":  4
+                                         },
+                                         {
+                                             "name":  "thrustVectoring",
+                                             "kind":  "float",
+                                             "size":  4
+                                         },
+                                         {
+                                             "name":  "thrust",
+                                             "kind":  "float",
+                                             "size":  4
+                                         },
+                                         {
+                                             "name":  "burnTime",
+                                             "kind":  "float",
+                                             "size":  4
+                                         },
+                                         {
+                                             "name":  "fuelMass",
+                                             "kind":  "float",
+                                             "size":  4
+                                         },
+                                         {
+                                             "name":  "topSpeed",
+                                             "kind":  "float",
+                                             "size":  4
+                                         },
+                                         {
+                                             "name":  "IR_intensity",
+                                             "kind":  "float",
+                                             "size":  4
+                                         },
+                                         {
+                                             "name":  "particleSystems",
+                                             "kind":  "array",
+                                             "target":  "UnityEngine.ParticleSystem",
+                                             "elemIsPptr":  true
+                                         },
+                                         {
+                                             "name":  "trailEmitters",
+                                             "kind":  "array",
+                                             "target":  "TrailEmitter",
+                                             "elemIsPptr":  true
+                                         },
+                                         {
+                                             "name":  "audioSources",
+                                             "kind":  "array",
+                                             "target":  "UnityEngine.AudioSource",
+                                             "elemIsPptr":  true
+                                         },
+                                         {
+                                             "name":  "startupSource",
+                                             "kind":  "pptr",
+                                             "target":  "AudioSource"
+                                         },
+                                         {
+                                             "name":  "lights",
+                                             "kind":  "array",
+                                             "target":  "UnityEngine.Light",
+                                             "elemIsPptr":  true
+                                         },
+                                         {
+                                             "name":  "destructEffects",
+                                             "kind":  "array",
+                                             "target":  "UnityEngine.GameObject",
+                                             "elemIsPptr":  true
+                                         }
+                                     ]
+                      },
+    "Missile+FoldingFin":  {
+                               "base":  null,
+                               "fields":  [
+                                              {
+                                                  "name":  "fin",
+                                                  "kind":  "pptr",
+                                                  "target":  "Transform"
+                                              },
+                                              {
+                                                  "name":  "foldAngle",
+                                                  "kind":  "class",
+                                                  "target":  "UnityEngine.Vector3"
+                                              },
+                                              {
+                                                  "name":  "deployAngle",
+                                                  "kind":  "class",
+                                                  "target":  "UnityEngine.Vector3"
+                                              },
+                                              {
+                                                  "name":  "deploySpeed",
+                                                  "kind":  "float",
+                                                  "size":  4
+                                              }
+                                          ]
+                           },
+    "ArmorProperties":  {
+                            "base":  null,
+                            "fields":  [
+                                           {
+                                               "name":  "pierceArmor",
+                                               "kind":  "float",
+                                               "size":  4
+                                           },
+                                           {
+                                               "name":  "blastArmor",
+                                               "kind":  "float",
+                                               "size":  4
+                                           },
+                                           {
+                                               "name":  "fireArmor",
+                                               "kind":  "float",
+                                               "size":  4
+                                           },
+                                           {
+                                               "name":  "pierceTolerance",
+                                               "kind":  "float",
+                                               "size":  4
+                                           },
+                                           {
+                                               "name":  "blastTolerance",
+                                               "kind":  "float",
+                                               "size":  4
+                                           },
+                                           {
+                                               "name":  "fireTolerance",
+                                               "kind":  "float",
+                                               "size":  4
+                                           },
+                                           {
+                                               "name":  "overpressureLimit",
+                                               "kind":  "float",
+                                               "size":  4
+                                           }
+                                       ]
+                        },
+    "PIDFactors":  {
+                       "base":  null,
+                       "fields":  [
+                                      {
+                                          "name":  "PID",
+                                          "kind":  "class",
+                                          "target":  "UnityEngine.Vector3"
+                                      }
+                                  ]
+                   },
+    "Missile+Warhead":  {
+                            "base":  null,
+                            "fields":  [
+                                           {
+                                               "name":  "Armed",
+                                               "kind":  "bool",
+                                               "size":  1
+                                           },
+                                           {
+                                               "name":  "airEffect",
+                                               "kind":  "pptr",
+                                               "target":  "GameObject"
+                                           },
+                                           {
+                                               "name":  "armorEffect",
+                                               "kind":  "pptr",
+                                               "target":  "GameObject"
+                                           },
+                                           {
+                                               "name":  "terrainEffect",
+                                               "kind":  "pptr",
+                                               "target":  "GameObject"
+                                           },
+                                           {
+                                               "name":  "waterSurfaceEffect",
+                                               "kind":  "pptr",
+                                               "target":  "GameObject"
+                                           },
+                                           {
+                                               "name":  "underwaterEffect",
+                                               "kind":  "pptr",
+                                               "target":  "GameObject"
+                                           },
+                                           {
+                                               "name":  "fizzleEffect",
+                                               "kind":  "pptr",
+                                               "target":  "GameObject"
+                                           }
+                                       ]
+                        },
+    "GlobalPosition":  {
+                           "base":  null,
+                           "fields":  [
+                                          {
+                                              "name":  "x",
+                                              "kind":  "float",
+                                              "size":  4
+                                          },
+                                          {
+                                              "name":  "y",
+                                              "kind":  "float",
+                                              "size":  4
+                                          },
+                                          {
+                                              "name":  "z",
+                                              "kind":  "float",
+                                              "size":  4
+                                          }
+                                      ]
+                       },
+    "Missile":  {
+                    "base":  "Unit",
+                    "fields":  [
+                                   {
+                                       "name":  "ownerID",
+                                       "kind":  "class",
+                                       "target":  "PersistentID"
+                                   },
+                                   {
+                                       "name":  "_targetID",
+                                       "kind":  "class",
+                                       "target":  "PersistentID"
+                                   },
+                                   {
+                                       "name":  "startingVelocity",
+                                       "kind":  "class",
+                                       "target":  "UnityEngine.Vector3"
+                                   },
+                                   {
+                                       "name":  "startOffsetFromOwner",
+                                       "kind":  "class",
+                                       "target":  "UnityEngine.Vector3"
+                                   },
+                                   {
+                                       "name":  "seekerMode",
+                                       "kind":  "enum",
+                                       "size":  4,
+                                       "values":  [
+                                                      "activeLock",
+                                                      "activeSearch",
+                                                      "passive"
+                                                  ]
+                                   },
+                                   {
+                                       "name":  "motors",
+                                       "kind":  "array",
+                                       "target":  "Missile+Motor",
+                                       "elemIsPptr":  false
+                                   },
+                                   {
+                                       "name":  "mass",
+                                       "kind":  "float",
+                                       "size":  4
+                                   },
+                                   {
+                                       "name":  "finArea",
+                                       "kind":  "float",
+                                       "size":  4
+                                   },
+                                   {
+                                       "name":  "uprightPreference",
+                                       "kind":  "float",
+                                       "size":  4
+                                   },
+                                   {
+                                       "name":  "supersonicDrag",
+                                       "kind":  "float",
+                                       "size":  4
+                                   },
+                                   {
+                                       "name":  "liftCurve",
+                                       "kind":  "class",
+                                       "target":  "UnityEngine.AnimationCurve"
+                                   },
+                                   {
+                                       "name":  "dragCurve",
+                                       "kind":  "class",
+                                       "target":  "UnityEngine.AnimationCurve"
+                                   },
+                                   {
+                                       "name":  "foldingFins",
+                                       "kind":  "array",
+                                       "target":  "Missile+FoldingFin",
+                                       "elemIsPptr":  false
+                                   },
+                                   {
+                                       "name":  "armorProperties",
+                                       "kind":  "class",
+                                       "target":  "ArmorProperties"
+                                   },
+                                   {
+                                       "name":  "PIDFactors",
+                                       "kind":  "class",
+                                       "target":  "PIDFactors"
+                                   },
+                                   {
+                                       "name":  "torque",
+                                       "kind":  "float",
+                                       "size":  4
+                                   },
+                                   {
+                                       "name":  "gLimit",
+                                       "kind":  "float",
+                                       "size":  4
+                                   },
+                                   {
+                                       "name":  "maxTurnRate",
+                                       "kind":  "float",
+                                       "size":  4
+                                   },
+                                   {
+                                       "name":  "effectsTransform",
+                                       "kind":  "pptr",
+                                       "target":  "Transform"
+                                   },
+                                   {
+                                       "name":  "flightSound",
+                                       "kind":  "pptr",
+                                       "target":  "AudioSource"
+                                   },
+                                   {
+                                       "name":  "nearbyDetonationClip",
+                                       "kind":  "pptr",
+                                       "target":  "AudioClip"
+                                   },
+                                   {
+                                       "name":  "basePitch",
+                                       "kind":  "float",
+                                       "size":  4
+                                   },
+                                   {
+                                       "name":  "pitchRange",
+                                       "kind":  "float",
+                                       "size":  4
+                                   },
+                                   {
+                                       "name":  "maxPitchSpeed",
+                                       "kind":  "float",
+                                       "size":  4
+                                   },
+                                   {
+                                       "name":  "warhead",
+                                       "kind":  "class",
+                                       "target":  "Missile+Warhead"
+                                   },
+                                   {
+                                       "name":  "blastYield",
+                                       "kind":  "float",
+                                       "size":  4
+                                   },
+                                   {
+                                       "name":  "pierceDamage",
+                                       "kind":  "float",
+                                       "size":  4
+                                   },
+                                   {
+                                       "name":  "impactFuse",
+                                       "kind":  "bool",
+                                       "size":  1
+                                   },
+                                   {
+                                       "name":  "impactFuseDelay",
+                                       "kind":  "float",
+                                       "size":  4
+                                   },
+                                   {
+                                       "name":  "info",
+                                       "kind":  "pptr",
+                                       "target":  "WeaponInfo"
+                                   },
+                                   {
+                                       "name":  "unitCommand",
+                                       "kind":  "pptr",
+                                       "target":  "UnitCommand"
+                                   },
+                                   {
+                                       "name":  "boosterIsAttached",
+                                       "kind":  "bool",
+                                       "size":  1
+                                   },
+                                   {
+                                       "name":  "aimPoint",
+                                       "kind":  "class",
+                                       "target":  "GlobalPosition"
+                                   }
+                               ]
+                },
+    "TargetRequirements":  {
+                               "base":  null,
+                               "fields":  [
+                                              {
+                                                  "name":  "lineOfSight",
+                                                  "kind":  "bool",
+                                                  "size":  1
+                                              },
+                                              {
+                                                  "name":  "minAltitude",
+                                                  "kind":  "float",
+                                                  "size":  4
+                                              },
+                                              {
+                                                  "name":  "maxAltitude",
+                                                  "kind":  "float",
+                                                  "size":  4
+                                              },
+                                              {
+                                                  "name":  "minRange",
+                                                  "kind":  "float",
+                                                  "size":  4
+                                              },
+                                              {
+                                                  "name":  "maxRange",
+                                                  "kind":  "float",
+                                                  "size":  4
+                                              },
+                                              {
+                                                  "name":  "maxSpeed",
+                                                  "kind":  "float",
+                                                  "size":  4
+                                              },
+                                              {
+                                                  "name":  "minIR",
+                                                  "kind":  "float",
+                                                  "size":  4
+                                              },
+                                              {
+                                                  "name":  "minRadar",
+                                                  "kind":  "float",
+                                                  "size":  4
+                                              },
+                                              {
+                                                  "name":  "minAlignment",
+                                                  "kind":  "float",
+                                                  "size":  4
+                                              },
+                                              {
+                                                  "name":  "minOwnerSpeed",
+                                                  "kind":  "float",
+                                                  "size":  4
+                                              },
+                                              {
+                                                  "name":  "minValue",
+                                                  "kind":  "float",
+                                                  "size":  4
+                                              }
+                                          ]
+                           },
+    "WeaponInfo":  {
+                       "base":  null,
+                       "fields":  [
+                                      {
+                                          "name":  "weaponPrefab",
+                                          "kind":  "pptr",
+                                          "target":  "GameObject"
+                                      },
+                                      {
+                                          "name":  "effectiveness",
+                                          "kind":  "class",
+                                          "target":  "RoleIdentity"
+                                      },
+                                      {
+                                          "name":  "targetRequirements",
+                                          "kind":  "class",
+                                          "target":  "TargetRequirements"
+                                      },
+                                      {
+                                          "name":  "pK",
+                                          "kind":  "float",
+                                          "size":  4
+                                      },
+                                      {
+                                          "name":  "weaponName",
+                                          "kind":  "string"
+                                      },
+                                      {
+                                          "name":  "shortName",
+                                          "kind":  "string"
+                                      },
+                                      {
+                                          "name":  "description",
+                                          "kind":  "string"
+                                      },
+                                      {
+                                          "name":  "fireInterval",
+                                          "kind":  "float",
+                                          "size":  4
+                                      },
+                                      {
+                                          "name":  "muzzleVelocity",
+                                          "kind":  "float",
+                                          "size":  4
+                                      },
+                                      {
+                                          "name":  "maxSpeed",
+                                          "kind":  "float",
+                                          "size":  4
+                                      },
+                                      {
+                                          "name":  "dragCoef",
+                                          "kind":  "float",
+                                          "size":  4
+                                      },
+                                      {
+                                          "name":  "gravMult",
+                                          "kind":  "float",
+                                          "size":  4
+                                      },
+                                      {
+                                          "name":  "pierceDamage",
+                                          "kind":  "float",
+                                          "size":  4
+                                      },
+                                      {
+                                          "name":  "blastDamage",
+                                          "kind":  "float",
+                                          "size":  4
+                                      },
+                                      {
+                                          "name":  "weaponIcon",
+                                          "kind":  "pptr",
+                                          "target":  "Sprite"
+                                      },
+                                      {
+                                          "name":  "armorTierEffectiveness",
+                                          "kind":  "float",
+                                          "size":  4
+                                      },
+                                      {
+                                          "name":  "airburstHeight",
+                                          "kind":  "float",
+                                          "size":  4
+                                      },
+                                      {
+                                          "name":  "visibilityWhenFired",
+                                          "kind":  "float",
+                                          "size":  4
+                                      },
+                                      {
+                                          "name":  "costPerRound",
+                                          "kind":  "float",
+                                          "size":  4
+                                      },
+                                      {
+                                          "name":  "massPerRound",
+                                          "kind":  "float",
+                                          "size":  4
+                                      },
+                                      {
+                                          "name":  "useWeaponDoors",
+                                          "kind":  "bool",
+                                          "size":  1
+                                      },
+                                      {
+                                          "name":  "boresight",
+                                          "kind":  "bool",
+                                          "size":  1
+                                      },
+                                      {
+                                          "name":  "laserGuided",
+                                          "kind":  "bool",
+                                          "size":  1
+                                      },
+                                      {
+                                          "name":  "missile",
+                                          "kind":  "bool",
+                                          "size":  1
+                                      },
+                                      {
+                                          "name":  "bomb",
+                                          "kind":  "bool",
+                                          "size":  1
+                                      },
+                                      {
+                                          "name":  "glideBomb",
+                                          "kind":  "bool",
+                                          "size":  1
+                                      },
+                                      {
+                                          "name":  "gun",
+                                          "kind":  "bool",
+                                          "size":  1
+                                      },
+                                      {
+                                          "name":  "overHorizon",
+                                          "kind":  "bool",
+                                          "size":  1
+                                      },
+                                      {
+                                          "name":  "nuclear",
+                                          "kind":  "bool",
+                                          "size":  1
+                                      },
+                                      {
+                                          "name":  "strategic",
+                                          "kind":  "bool",
+                                          "size":  1
+                                      },
+                                      {
+                                          "name":  "energy",
+                                          "kind":  "bool",
+                                          "size":  1
+                                      },
+                                      {
+                                          "name":  "jammer",
+                                          "kind":  "bool",
+                                          "size":  1
+                                      },
+                                      {
+                                          "name":  "troops",
+                                          "kind":  "bool",
+                                          "size":  1
+                                      },
+                                      {
+                                          "name":  "hideInDisplay",
+                                          "kind":  "bool",
+                                          "size":  1
+                                      },
+                                      {
+                                          "name":  "cargo",
+                                          "kind":  "bool",
+                                          "size":  1
+                                      },
+                                      {
+                                          "name":  "rearmGround",
+                                          "kind":  "bool",
+                                          "size":  1
+                                      },
+                                      {
+                                          "name":  "rearmShip",
+                                          "kind":  "bool",
+                                          "size":  1
+                                      },
+                                      {
+                                          "name":  "sling",
+                                          "kind":  "bool",
+                                          "size":  1
+                                      }
+                                  ]
+                   }
 }

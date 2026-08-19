@@ -35,17 +35,24 @@ DUMP_FILENAME = "armory_stat_current_values.json"
 
 
 def _dump_targets() -> list:
-    """[(concrete_class, field_name), ...] for every catalogued field, using the CONCRETE class
-    for each category (AircraftDefinition, not the abstract UnitDefinition) — the same tagging
-    unit_editor_tab.py uses when queuing overrides, so a dumped "current value" and a queued
-    override always speak the same (type, field) language. De-duplicated since several categories
-    share the same UnitDefinition-declared fields under different concrete classes."""
+    """[(concrete_class, field_name), ...] for every catalogued field the companion plugin can
+    actually dump/apply — using the CONCRETE class for each category (AircraftDefinition, not the
+    abstract UnitDefinition) — the same tagging unit_editor_tab.py uses when queuing overrides, so a
+    dumped "current value" and a queued override always speak the same (type, field) language.
+    De-duplicated since several categories share the same UnitDefinition-declared fields under
+    different concrete classes. Skips any field whose class has no KEY_FIELD_BY_CLASS entry (e.g.
+    Missile — its combat stats live on a prefab-attached MonoBehaviour with no simple per-instance
+    key field the live game exposes for reflection matching, unlike jsonKey/aircraftName; those
+    fields are direct-file-write-only, see unit_asset_layout.py's Missile/_TWO_HOP_TYPES handling)
+    rather than crashing or silently generating broken C# for a class the plugin can't match."""
     targets = []
     seen = set()
     for meta in usc.CATEGORIES.values():
         definition_class = meta["definition_class"]
         for f in meta["fields"]:
-            concrete = "AircraftParameters" if f.class_name == "AircraftParameters" else definition_class
+            concrete = f.class_name if f.class_name in usc.KEY_FIELD_BY_CLASS else definition_class
+            if concrete not in usc.KEY_FIELD_BY_CLASS:
+                continue
             key = (concrete, f.field_name)
             if key in seen:
                 continue

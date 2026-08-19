@@ -4,6 +4,36 @@ All notable changes to Nuclear Option Armory are documented here. Format loosely
 [Keep a Changelog](https://keepachangelog.com/); versions match the app's own `APP_VERSION`
 constant (`app_version.py`, shown on the Credits tab).
 
+## [0.10.0] - 2026-08-18
+
+### Added
+
+- **Munitions combat stats in the Weapon tab** — Warhead Yield, Pierce Damage, Missile G-Limit, and
+  Max Turn Rate are now real, editable fields for every standalone munition (missiles, rockets,
+  bombs, guided shells), alongside the existing shared UnitDefinition fields. These live on the
+  "Missile" MonoBehaviour attached to each munition's prefab (found via a two-hop reference chain:
+  MissileDefinition → its `unitPrefab` → the prefab's Missile component), not on MissileDefinition
+  itself. Direct-file-write only — the companion plugin can't reach these (a live spawned Missile
+  has no simple per-instance key field to match against), so "Write Directly to Game Files…" is the
+  only apply path; a genuine current-value readout is shown instead by reading the field straight
+  off the installed game files, so you can see real numbers without ever running the plugin.
+  Verified byte-exact against 10 diverse real munitions (small missiles through a tactical nuke),
+  including a real live write→verify→restore cycle against the actual installed game file.
+
+### Fixed (found while building the above)
+
+- Extended `unit_asset_layout.py`'s reflected-field reader to correctly handle several real cases
+  it hadn't hit yet on the simpler ScriptableObject Definition classes: `double`/`uint` primitives
+  (previously misclassified as unsupported nested classes), C# delegate/event fields and any other
+  generic type (contribute zero bytes, like `Nullable<T>` already did), `UnityEngine.Quaternion` and
+  `UnityEngine.AnimationCurve` (hand-solved real byte layouts, the latter confirmed via a
+  calibrated brute-force search against a known field offset), and — the big one — Unity's real
+  field-visibility rule for what gets serialized at all (`[NonSerialized]` always wins; short of
+  that, public, or private with `[SerializeField]`, or private with only Mirage's `[SyncVar]` still
+  counts as serialized on this game's networked MonoBehaviours). The previous reflector silently
+  included every public+private field regardless, which happened to be harmless on simple
+  ScriptableObjects but broke completely on `Missile`'s deeply-nested, Mirage-networked layout.
+
 ## [0.9.0] - 2026-08-17
 
 ### Added

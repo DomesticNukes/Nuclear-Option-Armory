@@ -187,6 +187,42 @@ class UnitEditorState:
         can't be found, or scanning fails for any reason — this is a bonus source, not required."""
         return sorted(self._game_file_units().get(definition_class, {}).keys())
 
+    def direct_file_current_value(self, class_name: str, key: str, field_name: str) -> Optional[str]:
+        """This field's REAL current value, read straight off the player's own installed game
+        files — the only way to see a genuinely current value for Missile-class fields (blastYield,
+        pierceDamage, gLimit, maxTurnRate), which are direct-file-write-only and so can never
+        appear in the companion plugin's dump (see unit_editor_engine._dump_targets). Works for any
+        direct-writable class, not just Missile, but callers should prefer the live dump for classes
+        that DO support it (self.read_current_values()) — this reads the file on disk, which won't
+        reflect an active companion-plugin override even if one happens to be running right now.
+        None (never raises) if no game folder is set, the object/field isn't found, or the field has
+        no fixed offset (e.g. a string)."""
+        try:
+            assets_path = ual.resources_assets_path(self.app._settings.get("game_root", ""))
+            if not assets_path.is_file():
+                return None
+            if class_name in ual._TWO_HOP_TYPES:
+                found = ual.find_missile_component(assets_path, key)
+                if found is None:
+                    return None
+                byte_start, byte_size = found
+            elif class_name in ual.DIRECT_WRITE_TYPES:
+                found = ual.find_unit_object(assets_path, key)
+                if found is None or found[0] != class_name:
+                    return None
+                _, byte_start, byte_size = found
+            else:
+                return None
+            with open(assets_path, "rb") as fh:
+                fh.seek(byte_start)
+                data = fh.read(byte_size)
+            field = ual.find_field(ual.read_object(data, class_name), field_name)
+            if field is None or field.offset is None:
+                return None
+            return f"{field.value:g}" if isinstance(field.value, float) else str(field.value)
+        except Exception:
+            return None
+
     def game_file_unit_name(self, definition_class: str, key: str) -> Optional[str]:
         """The real UnitDefinition.unitName for `key`, read straight off disk — no plugin build/
         deploy/run needed, since it's a plain string field like anything else scan_all_units reads.

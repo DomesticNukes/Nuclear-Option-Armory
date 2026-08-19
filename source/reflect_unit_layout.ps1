@@ -43,7 +43,9 @@ function Classify-Field($fieldType) {
     }
     switch ($fn) {
         "System.Single" { return @{ kind = "float"; size = 4 } }
+        "System.Double" { return @{ kind = "double"; size = 8 } }
         "System.Int32"  { return @{ kind = "int"; size = 4 } }
+        "System.UInt32" { return @{ kind = "uint"; size = 4 } }
         "System.Boolean"{ return @{ kind = "bool"; size = 1 } }
         "System.String" { return @{ kind = "string" } }
     }
@@ -52,6 +54,13 @@ function Classify-Field($fieldType) {
     }
     if ([UnityEngine.Object].IsAssignableFrom($fieldType)) {
         return @{ kind = "pptr"; target = $fieldType.Name }
+    }
+    if ([System.Delegate].IsAssignableFrom($fieldType)) {
+        # A C# event/delegate field (Action, Action<T>, custom delegate types, ...) -- Unity's
+        # serializer never touches these regardless of [Serializable]; confirmed real (Unit's
+        # onInitialize/OnRearmUnit are plain System.Action, would otherwise be misclassified as a
+        # serializable "class" by the generic catch-all below, since Action IS a class).
+        return @{ kind = "unsupported"; reason = "delegate ($fn)" }
     }
     if ($fieldType.IsClass -or $fieldType.IsValueType) {
         # A custom [Serializable] class/struct -- inline. Queue it for its own reflection pass.
@@ -66,7 +75,10 @@ function Reflect-Type($type) {
     $visited[$key] = $true
 
     $baseName = $null
-    if ($type.BaseType -and $type.BaseType.FullName -notin @("UnityEngine.ScriptableObject", "UnityEngine.Object", "System.Object", "System.ValueType")) {
+    $stopBases = @("UnityEngine.ScriptableObject", "UnityEngine.Object", "System.Object", "System.ValueType",
+                   "UnityEngine.MonoBehaviour", "UnityEngine.Behaviour", "UnityEngine.Component",
+                   "Mirage.NetworkBehaviour", "Mirage.NetworkIdentity")
+    if ($type.BaseType -and $type.BaseType.FullName -notin $stopBases) {
         $baseName = $type.BaseType.FullName
         Reflect-Type $type.BaseType
     }
@@ -75,21 +87,49 @@ function Reflect-Type($type) {
     $flags = [System.Reflection.BindingFlags]::Public -bor [System.Reflection.BindingFlags]::NonPublic -bor [System.Reflection.BindingFlags]::Instance -bor [System.Reflection.BindingFlags]::DeclaredOnly
     foreach ($f in $type.GetFields($flags)) {
         if ($f.Name.Contains("k__BackingField")) { continue }   # auto-property backing fields -- not real serialized data
+        if ($f.IsStatic -or $f.IsLiteral -or $f.IsInitOnly) { continue }   # static/const/readonly -- never instance data
+        if ($f.IsDefined([System.NonSerializedAttribute], $false)) { continue }
+        # Unity's ACTUAL serialization rule for THIS game (confirmed real, not assumed -- fixed
+        # 2026-08-18 after two rounds of empirical byte-offset validation against a real Missile
+        # object): [NonSerialized] is an absolute veto Unity always respects (Unit.unitName etc. are
+        # public but [NonSerialized] -- synced over the network via Mirage's SyncVar system instead
+        # of Unity's own serializer, contribute zero bytes). Short of that veto, a field is written
+        # if it's PUBLIC, or PRIVATE with an explicit [SerializeField], OR carries Mirage's own
+        # [SyncVar] attribute -- confirmed empirically real: Missile._targetID is private with only
+        # [SyncVar] (no [SerializeField]) and its 4 bytes ARE genuinely present in the real data
+        # (proven by every field after it landing exactly on its expected value, incl. an exact
+        # match against Missile+Motor.topSpeed's real 299792450f sentinel default, once counted).
+        # Mirage's weaver evidently makes SyncVar fields serializable regardless of visibility,
+        # unless [NonSerialized] is also present to explicitly opt back out.
+        $hasSerializeField = $f.IsDefined([UnityEngine.SerializeField], $false)
+        $hasSyncVar = $f.CustomAttributes | Where-Object { $_.AttributeType.FullName -eq "Mirage.SyncVarAttribute" }
+        if (-not $f.IsPublic -and -not $hasSerializeField -and -not $hasSyncVar) { continue }
         $info = Classify-Field $f.FieldType
         $entry = [ordered]@{ name = $f.Name; kind = $info.kind }
         foreach ($k in @("size", "target", "reason", "values", "elemIsPptr")) {
             if ($info.ContainsKey($k)) { $entry[$k] = $info[$k] }
         }
         $fields += $entry
-        if ($info.kind -eq "class" -or ($info.kind -eq "array" -and -not $info.elemIsPptr)) {
+        # Vector3/Quaternion live outside Assembly-CSharp.dll (UnityEngine.CoreModule), so
+        # $asm.GetType() below can never resolve them -- but unit_asset_layout.py's Python reader
+        # hand-special-cases these two exact struct layouts (confirmed real, byte-exact), so they
+        # must stay kind="class" with their real target name, not get marked unsupported.
+        $handSolvedStructs = @("UnityEngine.Vector3", "UnityEngine.Quaternion", "UnityEngine.AnimationCurve")
+        if (($info.kind -eq "class" -or ($info.kind -eq "array" -and -not $info.elemIsPptr)) -and $info.target -notin $handSolvedStructs) {
             $nested = $asm.GetType($info.target)
             if ($nested) { Reflect-Type $nested }
-            elseif ($info.kind -eq "array") {
-                # element type lives outside Assembly-CSharp.dll (e.g. a UnityEngine/System struct
-                # this script can't reflect from here) -- mark unresolvable rather than silently
-                # treating the array as skippable with unknown element size.
+            else {
+                # Nested type lives outside Assembly-CSharp.dll (e.g. a UnityEngine/System/Mirage
+                # struct this script can't reflect from here) -- mark unresolvable rather than
+                # silently claiming kind="class"/"array" with a target that will never be found in
+                # the output, which would surface as a much more confusing "no reflected layout for
+                # type X" error two steps removed from the real cause. Applies to plain class fields
+                # too, not just array elements -- a bug fixed 2026-08-18 after Unit.hit
+                # (UnityEngine.RaycastHit) and Unit.HQ (Mirage.NetworkBehaviorSyncvar) silently kept
+                # kind="class" and broke the Missile read path two fields later than the real cause.
                 $entry.kind = "unsupported"
-                $entry.reason = "array element type not found in Assembly-CSharp.dll: $($info.target)"
+                $noun = if ($info.kind -eq "array") { "array element" } else { "nested" }
+                $entry.reason = "$noun type not found in Assembly-CSharp.dll: $($info.target)"
             }
         }
     }

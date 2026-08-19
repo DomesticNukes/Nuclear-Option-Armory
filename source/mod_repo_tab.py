@@ -28,7 +28,15 @@ class _Tab:
         self.mods_by_id = {}
         self.filtered = []
         self._build_widgets(parent)
-        self.refresh_manifest()
+        # Deferred via .after(), not called directly: this kicks off a background thread that
+        # calls back into Tk via self.app.after(0, ...) once the network fetch completes. Called
+        # synchronously here, that background thread can finish (or fail fast, e.g. no network)
+        # and try to call back BEFORE the app's own mainloop() has actually started — the rest of
+        # the app's tabs are still being built at this point — which trips Tkinter's real
+        # "main thread is not in main loop" safety check (confirmed real: reproduced repeatedly,
+        # 2026-08-18). Scheduling via .after() instead only starts the thread once mainloop is
+        # already pumping events, so the race is structurally impossible.
+        self.app.after(0, self.refresh_manifest)
 
     # ── Widgets ──────────────────────────────────────────────────────────
 

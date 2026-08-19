@@ -986,3 +986,21 @@ def show_text(parent, title, message, body, *, ok_label=None, height=16, width=7
 
     return _run_dialog(parent, "info", title, message,
                        [(ok_label or _t("OK"), True, True)], build_extra=build, min_width=440)
+
+
+def atomic_write_json(path, obj) -> None:
+    """Writes `obj` as JSON to `path` via a temp-file-then-rename, so a crash or power loss
+    mid-write can never leave a half-written/corrupt state file behind — the rename is atomic on
+    both Windows and POSIX. Shared here (rather than duplicated per-caller, as nom_app.py and
+    plugins_tab.py both did independently until 2026-08-18) since every settings/state JSON file
+    across the app wants the exact same safety property."""
+    import json
+    import os
+    from pathlib import Path
+    path = Path(path)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(obj, f, indent=2)
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp, path)

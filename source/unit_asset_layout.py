@@ -69,6 +69,18 @@ from typing import Optional
 # to duplicate the logic just because the underlying resource differs, registry value vs. file).
 from rewired_registry import is_game_running, backup_value as backup_object_bytes
 
+_KEYFRAME_SIZE = 28        # bytes per UnityEngine.AnimationCurve keyframe (time/value/inSlope/
+                            # outSlope: 4 floats + weightedMode: int + inWeight/outWeight: 2 floats)
+_CURVE_TRAILER_SIZE = 12   # bytes after the last keyframe: m_PreInfinity + m_PostInfinity (int
+                            # WrapMode each) + a 3rd trailing int (m_RotationOrder — present in this
+                            # Unity version despite UnityPy's own generated bindings marking it
+                            # Optional). Both constants confirmed real via a brute-force search
+                            # (kf_size 12-40 x overhead 0/4/8/12) against a real Missile object,
+                            # calibrated to blastYield's independently-confirmed absolute offset
+                            # (696, found via a unique float search for 11.0 = MMR-S3's real wiki
+                            # yield) — this (28, 12) pair is the only one landing exactly on target
+                            # with a physically plausible keyframe count on both curves.
+
 _LAYOUT_PATH = Path(__file__).parent / "data" / "unit_asset_layout.json"
 
 with open(_LAYOUT_PATH, encoding="utf-8-sig") as _f:
@@ -134,8 +146,16 @@ def _read_fields(type_name: str, data: bytes, pos: int, path_prefix: str, result
             val = struct.unpack_from("<f", data, pos)[0]
             results.append(FieldValue(full_path, kind, val, pos))
             pos += 4
+        elif kind == "double":
+            val = struct.unpack_from("<d", data, pos)[0]
+            results.append(FieldValue(full_path, kind, val, pos))
+            pos += 8
         elif kind in ("int", "enum"):
             val = struct.unpack_from("<i", data, pos)[0]
+            results.append(FieldValue(full_path, kind, val, pos))
+            pos += 4
+        elif kind == "uint":
+            val = struct.unpack_from("<I", data, pos)[0]
             results.append(FieldValue(full_path, kind, val, pos))
             pos += 4
         elif kind == "bool":
@@ -155,6 +175,25 @@ def _read_fields(type_name: str, data: bytes, pos: int, path_prefix: str, result
                 results.append(FieldValue(f"{full_path}.y", "float", y, pos + 4))
                 results.append(FieldValue(f"{full_path}.z", "float", z, pos + 8))
                 pos += 12
+            elif f["target"] == "UnityEngine.Quaternion":
+                x, y, z, w = struct.unpack_from("<4f", data, pos)
+                results.append(FieldValue(f"{full_path}.x", "float", x, pos))
+                results.append(FieldValue(f"{full_path}.y", "float", y, pos + 4))
+                results.append(FieldValue(f"{full_path}.z", "float", z, pos + 8))
+                results.append(FieldValue(f"{full_path}.w", "float", w, pos + 12))
+                pos += 16
+            elif f["target"] == "UnityEngine.AnimationCurve":
+                # Modern Unity (2018.1+, applies to this game's 2022.3.62f2) keyframe format: a
+                # 4-byte count, then per-keyframe {time, value, inSlope, outSlope}(floats) +
+                # weightedMode(int32) + {inWeight, outWeight}(floats) = 28 bytes/keyframe, then two
+                # trailing WrapMode enums (preInfinity/postInfinity, 4 bytes each). Not exposed as
+                # individually editable fields (a per-keyframe curve isn't a single "stat" a modder
+                # would sanely override) — read here only so this field's real, variable byte length
+                # is correctly skipped and doesn't corrupt every field that comes after it.
+                count = struct.unpack_from("<i", data, pos)[0]
+                if count < 0 or count > 1000:
+                    raise AssetLayoutError(f"Implausible AnimationCurve keyframe count {count} for {full_path} at offset {pos}")
+                pos += 4 + count * _KEYFRAME_SIZE + _CURVE_TRAILER_SIZE
             else:
                 pos = _read_fields(f["target"], data, pos, full_path, results)
         elif kind == "array":
@@ -168,11 +207,16 @@ def _read_fields(type_name: str, data: bytes, pos: int, path_prefix: str, result
             else:
                 for i in range(count):
                     pos = _read_fields(f["target"], data, pos, f"{full_path}[{i}]", results)
-        elif kind == "unsupported" and "Nullable" in f.get("reason", ""):
-            # Confirmed real, not assumed: Unity's serializer does not support System.Nullable<T> at
-            # all, so a field of this type contributes ZERO bytes to the real object — it's simply
-            # never written, not written-as-something-then-skippable. Verified by byte-exact match
-            # on a real MissileDefinition object once this field was treated as fully absent.
+        elif kind == "unsupported" and f.get("reason", "").startswith(("Nullable", "generic (", "delegate (")):
+            # Confirmed real, not assumed: Unity's built-in serializer only ever writes primitives/
+            # strings/enums/object-references/arrays-or-List<T> of those/[Serializable] classes —
+            # nothing else, full stop. System.Nullable<T>, any OTHER generic type (Dictionary<K,V>,
+            # etc.), and delegate/event fields (Action, Action<T>, ...) are never serialized at all,
+            # so a field of any of these contributes ZERO bytes to the real object — never
+            # written, not written-as-something-then-skippable. Verified by byte-exact match on a
+            # real MissileDefinition object (Nullable<float> mass) and, separately, on Missile
+            # (Dictionary<PersistentID,float> damageCredit, several System.Action/Action<T> event
+            # fields) once all were treated as fully absent.
             results.append(FieldValue(full_path, "absent", None, None))
         else:
             raise AssetLayoutError(
@@ -224,8 +268,12 @@ def write_field_in_place(data: bytearray, field: FieldValue, new_value) -> None:
             f"(string/array/pptr fields would need the whole file rebuilt, not attempted here)")
     if field.kind == "float":
         struct.pack_into("<f", data, field.offset, float(new_value))
+    elif field.kind == "double":
+        struct.pack_into("<d", data, field.offset, float(new_value))
     elif field.kind in ("int", "enum"):
         struct.pack_into("<i", data, field.offset, int(new_value))
+    elif field.kind == "uint":
+        struct.pack_into("<I", data, field.offset, int(new_value))
     elif field.kind == "bool":
         data[field.offset] = 1 if new_value else 0
     else:
@@ -260,6 +308,56 @@ def find_unit_object(assets_path, json_key: str):
         if class_name not in LAYOUT:
             continue
         return class_name, o.byte_start, o.byte_size
+    return None
+
+
+def find_missile_component(assets_path, json_key: str):
+    """Like find_unit_object, but for the real per-munition combat stats (blastYield, pierceDamage,
+    gLimit, maxTurnRate, hitpoints, ...) that live on the "Missile" MonoBehaviour COMPONENT attached
+    to a munition's prefab GameObject, not on MissileDefinition itself (which only covers the shared
+    UnitDefinition fields — visibleRange, captureCapacity, etc.). Two real hops, confirmed byte-exact
+    against 10 diverse real munitions (missiles, bombs, even a tactical nuke) covering wildly
+    different byte sizes/keyframe counts/motor counts, 2026-08-18:
+      1. Find `json_key`'s MissileDefinition object (find_unit_object) and read its `unitPrefab`
+         PPtr — a real reference to the munition's prefab GameObject, always in the SAME file
+         (m_FileID 0) for every munition checked so far.
+      2. Resolve that GameObject and scan its m_Component list for the one MonoBehaviour whose real
+         script class is "Missile" (confirmed via m_Script, never guessed from position/order —
+         every prefab has 8-11 components in varying order: Transform, mesh/collider/audio/network
+         components, one or two seeker types, etc.).
+    Returns (byte_start, byte_size) for the Missile component, or None if `json_key` isn't a real
+    munition, has no prefab reference, or its prefab has no Missile component (shouldn't happen for
+    anything actually in MissileDefinition's roster, but checked rather than assumed)."""
+    import UnityPy
+    env = UnityPy.load(str(assets_path))
+    found = find_unit_object(assets_path, json_key)
+    if found is None or found[0] != "MissileDefinition":
+        return None
+    _, byte_start, byte_size = found
+    with open(assets_path, "rb") as fh:
+        fh.seek(byte_start)
+        mdef_data = fh.read(byte_size)
+    values = read_object(mdef_data, "MissileDefinition")
+    prefab_field = find_field(values, "unitPrefab")
+    if prefab_field is None or prefab_field.value["m_FileID"] != 0:
+        return None   # cross-file prefab refs never seen in practice; not chased if they ever occur
+
+    by_id = {o.path_id: o for o in env.objects}
+    go = by_id.get(prefab_field.value["m_PathID"])
+    if go is None or go.type.name != "GameObject":
+        return None
+    go_data = go.read()
+    for comp in go_data.m_Component:
+        c = by_id.get(comp.component.m_PathID)
+        if c is None or c.type.name != "MonoBehaviour":
+            continue
+        try:
+            head = c.parse_monobehaviour_head()
+            class_name = head.m_Script.deref_parse_as_object().m_ClassName
+        except Exception:
+            continue
+        if class_name == "Missile":
+            return c.byte_start, c.byte_size
     return None
 
 
@@ -323,8 +421,12 @@ def write_field_in_file(assets_path: Path, byte_start: int, field: FieldValue, n
             f"{field.path} ({field.kind}) has no fixed offset — not safe to write in place")
     if field.kind == "float":
         packed = struct.pack("<f", float(new_value))
+    elif field.kind == "double":
+        packed = struct.pack("<d", float(new_value))
     elif field.kind in ("int", "enum"):
         packed = struct.pack("<i", int(new_value))
+    elif field.kind == "uint":
+        packed = struct.pack("<I", int(new_value))
     elif field.kind == "bool":
         packed = bytes([1 if new_value else 0])
     else:
@@ -341,6 +443,13 @@ def write_field_in_file(assets_path: Path, byte_start: int, field: FieldValue, n
 # stays companion-plugin-only.
 DIRECT_WRITE_TYPES = frozenset(
     {"AircraftDefinition", "VehicleDefinition", "ShipDefinition", "BuildingDefinition", "MissileDefinition"})
+
+# "Missile" is a SEPARATE direct-write type from the five above: its real combat stats (blastYield,
+# pierceDamage, gLimit, maxTurnRate, hitpoints, ...) live on a MonoBehaviour COMPONENT attached to
+# the munition's prefab GameObject, found via a two-hop reference chain (find_missile_component),
+# not by a single m_Name match (find_unit_object) — see that function's own docstring. Confirmed
+# byte-exact against 10 diverse real munitions, 2026-08-18.
+_TWO_HOP_TYPES = frozenset({"Missile"})
 
 
 @dataclass
@@ -379,15 +488,20 @@ def apply_queue_entries_to_game_files(game_root, entries: list, backups_dir: Pat
 
     for entry in entries:
         type_name, key, field_name = entry.get("type"), entry.get("key"), entry.get("field")
-        if type_name not in DIRECT_WRITE_TYPES:
+        if type_name not in DIRECT_WRITE_TYPES and type_name not in _TWO_HOP_TYPES:
             outcomes.append(ApplyOutcome(entry, "skipped",
                                           f'"{type_name}" isn\'t supported by direct file writing yet '
                                           f'— use the companion plugin for this field instead.'))
             continue
 
-        if key not in object_cache:
-            object_cache[key] = find_unit_object(assets_path, key)
-        found = object_cache[key]
+        cache_lookup_key = (type_name, key)
+        if cache_lookup_key not in object_cache:
+            if type_name in _TWO_HOP_TYPES:
+                two_hop = find_missile_component(assets_path, key)
+                object_cache[cache_lookup_key] = (type_name, *two_hop) if two_hop else None
+            else:
+                object_cache[cache_lookup_key] = find_unit_object(assets_path, key)
+        found = object_cache[cache_lookup_key]
         if found is None:
             outcomes.append(ApplyOutcome(entry, "skipped", f'No object named "{key}" found in resources.assets.'))
             continue
@@ -418,14 +532,18 @@ def apply_queue_entries_to_game_files(game_root, entries: list, backups_dir: Pat
             continue
 
         backup_path = None
-        cache_key = (str(assets_path), key)
+        # Keyed on (assets file, type, key) rather than just (assets file, key) — MissileDefinition
+        # and Missile share the same jsonKey but are two entirely distinct objects at different
+        # byte ranges; deduping on key alone would leave the second type's object unbacked-up if
+        # both were queued together for the same munition.
+        cache_key = (str(assets_path), type_name, key)
         if cache_key not in backed_up_keys:
-            backup_path = backup_object_bytes(backups_dir, f"{assets_path.name}_{key}", original_bytes)
+            backup_path = backup_object_bytes(backups_dir, f"{assets_path.name}_{type_name}_{key}", original_bytes)
             backed_up_keys.add(cache_key)
 
         try:
-            new_value = float(entry["value"]) if field.kind == "float" else \
-                int(float(entry["value"])) if field.kind in ("int", "enum") else \
+            new_value = float(entry["value"]) if field.kind in ("float", "double") else \
+                int(float(entry["value"])) if field.kind in ("int", "enum", "uint") else \
                 entry["value"] in ("true", "True", "1", True)
             write_field_in_file(assets_path, byte_start, field, new_value)
         except Exception as e:

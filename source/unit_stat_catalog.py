@@ -113,6 +113,26 @@ _AIRCRAFT_PARAMETER_FIELDS = [
               min_value=0, max_value=200, step=1, default_value=10.0),
 ]
 
+# The real combat stats for an individual munition (blast yield, pierce damage, G-limit, turn
+# rate) — confirmed real via decompiling Missile.cs and byte-exact validated against 10 diverse
+# real munitions (2026-08-18). These live on the "Missile" MonoBehaviour attached to the munition's
+# prefab, NOT on MissileDefinition (which only covers the shared UnitDefinition fields above) — a
+# different object, found via a two-hop reference chain (see unit_asset_layout.find_missile_component).
+# DIRECT-FILE-WRITE ONLY: unlike every other category's extra_classes entry, Missile fields can't go
+# through the companion plugin, since a live spawned Missile GameObject has no simple per-instance
+# key field (like jsonKey/aircraftName) for runtime reflection matching — see
+# unit_editor_engine._dump_targets's own note on why it skips these.
+_MISSILE_COMBAT_FIELDS = [
+    StatField("Missile", "blastYield", "float", "Warhead Yield (kg TNT-equiv.)",
+              "The real 'Yield' stat shown on the wiki — ranges from single digits for a light AAM "
+              "warhead to tens of millions for a nuclear payload.", min_value=0, max_value=25000000, step=1),
+    StatField("Missile", "pierceDamage", "float", "Pierce Damage", min_value=0, max_value=5000, step=10),
+    StatField("Missile", "gLimit", "float", "Missile G-Limit",
+              "How many g's the airframe itself can pull — separate from aircraftGLimit, since "
+              "missiles routinely pull far more g than any aircraft.", min_value=0, max_value=200, step=1),
+    StatField("Missile", "maxTurnRate", "float", "Max Turn Rate (deg/s)", min_value=0, max_value=720, step=5),
+]
+
 # category display name -> {definition_class, mission_key, fields}. `mission_key` is the key a
 # saved mission JSON uses for that category's unit list — confirmed real for all five, including
 # "missiles" (a real top-level mission category for standalone/free-flying munitions like guided
@@ -132,7 +152,7 @@ CATEGORIES = {
     # via a real comprehensive mission, 2026-08-15) covers every standalone munition: guided
     # missiles, rockets, gun shells, AND bombs (bomb500, nuclearBomb1, ...), not just missiles.
     "Weapon": {"definition_class": "MissileDefinition", "mission_key": "missiles",
-               "fields": list(_UNIT_DEFINITION_FIELDS), "extra_classes": []},
+               "fields": _UNIT_DEFINITION_FIELDS + _MISSILE_COMBAT_FIELDS, "extra_classes": ["Missile"]},
 }
 
 # Which field, on which class, identifies a live instance of that class at runtime — must match

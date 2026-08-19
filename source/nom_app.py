@@ -116,15 +116,6 @@ def _build_icon_photo() -> tk.PhotoImage:
     return photo
 
 
-def _atomic_write_json(path: Path, obj) -> None:
-    tmp = path.with_suffix(path.suffix + ".tmp")
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(obj, f, indent=2)
-        f.flush()
-        os.fsync(f.fileno())
-    os.replace(tmp, path)
-
-
 class NomApp(tk.Tk):
     def __init__(self):
         super().__init__()
@@ -315,7 +306,7 @@ class NomApp(tk.Tk):
 
     def save_settings(self):
         try:
-            _atomic_write_json(_SETTINGS_FILE, self._settings)
+            ui_util.atomic_write_json(_SETTINGS_FILE, self._settings)
         except Exception as e:
             ui_util.error(self, t("Save Error"), str(e))
 
